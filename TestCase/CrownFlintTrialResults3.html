@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Crown Glass Trade Study - Surfaces 1 &amp; 10 - Double Gauss 28 deg</title>
+<style>
+  body { font-family: Segoe UI, Arial, sans-serif; margin: 30px; background: #f5f5f5; }
+  h1 { color: #333; }
+  h2 { color: #555; margin-top: 30px; }
+  table { border-collapse: collapse; width: 100%; margin: 15px 0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: center; }
+  th { background: #4472C4; color: white; }
+  tr:nth-child(even) { background: #f9f9f9; }
+  .best { background: #c6efce !important; font-weight: bold; }
+  .good { background: #dff0d8 !important; }
+  .baseline { background: #fff2cc !important; }
+  .worst { background: #ffc7ce !important; }
+  .info { background: white; padding: 15px 20px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin: 15px 0; }
+  .note { color: #666; font-size: 0.9em; margin-top: 5px; }
+  .matrix td { font-size: 0.9em; padding: 6px 10px; }
+  .matrix td.best { background: #c6efce !important; }
+  .matrix td.top5 { background: #dff0d8 !important; }
+  .matrix td.worse { background: #ffc7ce !important; }
+</style>
+</head>
+<body>
+
+<h1>Crown Glass Trade Study - Surfaces 1 &amp; 10</h1>
+<h2>Double Gauss 28 Degree Field (SYN3)</h2>
+
+<div class="info">
+  <p><strong>Starting Design:</strong> Best result from Study 2: T068 (Front: N-LAK7/LF5, Rear: N-LAK7/N-SF2)</p>
+  <p><strong>Starting Merit Function:</strong> 0.018744</p>
+  <p><strong>Method:</strong> Replace crown glasses on surfaces 1 (front singlet) and 10 (rear singlet), then run DLS local optimization (automatic cycles)</p>
+  <p><strong>Glass Source:</strong> SCHOTT preferred crowns only</p>
+  <p><strong>Original glasses:</strong> Surface 1 = SK2 (Nd=1.607), Surface 10 = SK16 (Nd=1.620)</p>
+  <p><strong>Crowns tested (11):</strong> N-BK7, N-K5, N-BAK4, N-SK2, N-SK14, N-SK16, N-SSK8, N-LAK21, N-LAK7, N-LAK22, N-PSK53A</p>
+  <p><strong>Total combinations:</strong> 11 x 11 = 121</p>
+</div>
+
+<h2>Top 20 Results (sorted by Final MF)</h2>
+
+<table>
+  <tr>
+    <th>Rank</th><th>Trial</th><th>Surf 1</th><th>Surf 10</th><th>Final MF</th><th>vs Baseline</th><th>File</th>
+  </tr>
+  <tr class="best">
+    <td>1</td><td>T097</td><td>N-LAK7</td><td>N-LAK7</td>
+    <td>0.01806</td><td>-3.7%</td><td>T097_s1_NLAK7_s10_NLAK7.zmx</td>
+  </tr>
+  <tr class="best">
+    <td>2</td><td>T108</td><td>N-LAK22</td><td>N-LAK7</td>
+    <td>0.01811</td><td>-3.4%</td><td>T108_s1_NLAK22_s10_NLAK7.zmx</td>
+  </tr>
+  <tr class="best">
+    <td>3</td><td>T119</td><td>N-PSK53A</td><td>N-LAK7</td>
+    <td>0.01813</td><td>-3.3%</td><td>T119_s1_NPSK53A_s10_NLAK7.zmx</td>
+  </tr>
+  <tr class="best">
+    <td>4</td><td>T096</td><td>N-LAK7</td><td>N-LAK21</td>
+    <td>0.01816</td><td>-3.1%</td><td>T096_s1_NLAK7_s10_NLAK21.zmx</td>
+  </tr>
+  <tr class="best">
+    <td>5</td><td>T098</td><td>N-LAK7</td><td>N-LAK22</td>
+    <td>0.01817</td><td>-3.0%</td><td>T098_s1_NLAK7_s10_NLAK22.zmx</td>
+  </tr>
+  <tr class="good">
+    <td>6</td><td>T109</td><td>N-LAK22</td><td>N-LAK22</td>
+    <td>0.01818</td><td>-3.0%</td><td>T109_s1_NLAK22_s10_NLAK22.zmx</td>
+  </tr>
+  <tr class="good">
+    <td>7</td><td>T107</td><td>N-LAK22</td><td>N-LAK21</td>
+    <td>0.01819</td><td>-2.9%</td><td>T107_s1_NLAK22_s10_NLAK21.zmx</td>
+  </tr>
+  <tr class="good">
+    <td>8</td><td>T118</td><td>N-PSK53A</td><td>N-LAK21</td>
+    <td>0.01821</td><td>-2.8%</td><td>T118_s1_NPSK53A_s10_NLAK21.zmx</td>
+  </tr>
+  <tr class="good">
+    <td>9</td><td>T087</td><td>N-LAK21</td><td>N-LAK22</td>
+    <td>0.01824</td><td>-2.7%</td><td>T087_s1_NLAK21_s10_NLAK22.zmx</td>
+  </tr>
+  <tr class="good">
+    <td>10</td><td>T086</td><td>N-LAK21</td><td>N-LAK7</td>
+    <td>0.01824</td><td>-2.7%</td><td>T086_s1_NLAK21_s10_NLAK7.zmx</td>
+  </tr>
+  <tr>
+    <td>11</td><td>T085</td><td>N-LAK21</td><td>N-LAK21</td>
+    <td>0.01827</td><td>-2.5%</td><td>T085_s1_NLAK21_s10_NLAK21.zmx</td>
+  </tr>
+  <tr>
+    <td>12</td><td>T120</td><td>N-PSK53A</td><td>N-LAK22</td>
+    <td>0.01829</td><td>-2.4%</td><td>T120_s1_NPSK53A_s10_NLAK22.zmx</td>
+  </tr>
+  <tr>
+    <td>13</td><td>T094</td><td>N-LAK7</td><td>N-SK16</td>
+    <td>0.01836</td><td>-2.0%</td><td>T094_s1_NLAK7_s10_NSK16.zmx</td>
+  </tr>
+  <tr>
+    <td>14</td><td>T020</td><td>N-SK16</td><td>N-LAK7</td>
+    <td>0.01837</td><td>-2.0%</td><td>T020_s1_NSK16_s10_NLAK7.zmx</td>
+  </tr>
+  <tr>
+    <td>15</td><td>T121</td><td>N-PSK53A</td><td>N-PSK53A</td>
+    <td>0.01838</td><td>-2.0%</td><td>T121_s1_NPSK53A_s10_NPSK53A.zmx</td>
+  </tr>
+  <tr>
+    <td>16</td><td>T110</td><td>N-LAK22</td><td>N-PSK53A</td>
+    <td>0.01838</td><td>-1.9%</td><td>T110_s1_NLAK22_s10_NPSK53A.zmx</td>
+  </tr>
+  <tr>
+    <td>17</td><td>T099</td><td>N-LAK7</td><td>N-PSK53A</td>
+    <td>0.01835</td><td>-2.1%</td><td>T099_s1_NLAK7_s10_NPSK53A.zmx</td>
+  </tr>
+  <tr>
+    <td>18</td><td>T116</td><td>N-PSK53A</td><td>N-SK16</td>
+    <td>0.01840</td><td>-1.8%</td><td>T116_s1_NPSK53A_s10_NSK16.zmx</td>
+  </tr>
+  <tr>
+    <td>19</td><td>T105</td><td>N-LAK22</td><td>N-SK16</td>
+    <td>0.01841</td><td>-1.8%</td><td>T105_s1_NLAK22_s10_NSK16.zmx</td>
+  </tr>
+  <tr>
+    <td>20</td><td>T021</td><td>N-SK16</td><td>N-LAK22</td>
+    <td>0.01843</td><td>-1.7%</td><td>T021_s1_NSK16_s10_NLAK22.zmx</td>
+  </tr>
+</table>
+
+<h2>Merit Function Matrix (Surf 1 vs Surf 10)</h2>
+<table class="matrix">
+  <tr>
+    <th>S1 \ S10</th><th>N-BK7</th><th>N-K5</th><th>N-BAK4</th><th>N-SK2</th><th>N-SK14</th><th>N-SK16</th><th>N-SSK8</th><th>N-LAK21</th><th>N-LAK7</th><th>N-LAK22</th><th>N-PSK53A</th>
+  </tr>
+  <tr>
+    <td><strong>N-BK7</strong></td>
+    <td>0.02137</td><td>0.02130</td><td>0.02076</td><td>0.02021</td><td>0.02019</td><td>0.02005</td><td>0.02045</td><td>0.01975</td><td>0.01967</td><td>0.01977</td><td>0.01990</td>
+  </tr>
+  <tr>
+    <td><strong>N-K5</strong></td>
+    <td>0.02148</td><td>0.02150</td><td>0.02086</td><td>0.02029</td><td>0.02024</td><td>0.02002</td><td>0.02054</td><td>0.01978</td><td>0.01973</td><td>0.01980</td><td>0.01996</td>
+  </tr>
+  <tr>
+    <td><strong>N-BAK4</strong></td>
+    <td>0.02078</td><td>0.02076</td><td>0.02017</td><td>0.01961</td><td>0.01956</td><td>0.01934</td><td>0.01980</td><td>0.01911</td><td>0.01902</td><td>0.01910</td><td>0.01929</td>
+  </tr>
+  <tr>
+    <td><strong>N-SK2</strong></td>
+    <td>0.02010</td><td>0.02007</td><td>0.01950</td><td>0.01899</td><td>0.01894</td><td class="baseline">0.01874</td><td>0.01915</td><td>0.01853</td><td>0.01844</td><td>0.01852</td><td>0.01870</td>
+  </tr>
+  <tr>
+    <td><strong>N-SK14</strong></td>
+    <td>0.02011</td><td>0.02012</td><td>0.01954</td><td>0.01904</td><td>0.01902</td><td>0.01882</td><td>0.01921</td><td>0.01861</td><td>0.01862</td><td>0.01860</td><td>0.01880</td>
+  </tr>
+  <tr>
+    <td><strong>N-SK16</strong></td>
+    <td>0.01972</td><td>0.01968</td><td>0.01920</td><td>0.01888</td><td>0.01888</td><td>0.01867</td><td>0.01893</td><td>0.01846</td><td>0.01837</td><td>0.01843</td><td>0.01865</td>
+  </tr>
+  <tr>
+    <td><strong>N-SSK8</strong></td>
+    <td>0.02082</td><td>0.02065</td><td>0.01983</td><td>0.01924</td><td>0.01923</td><td>0.01899</td><td>0.01945</td><td>0.01874</td><td>0.01864</td><td>0.01873</td><td>0.01896</td>
+  </tr>
+  <tr>
+    <td><strong>N-LAK21</strong></td>
+    <td>0.01973</td><td>0.01973</td><td>0.01916</td><td>0.01868</td><td>0.01867</td><td>0.01849</td><td>0.01882</td><td>0.01827</td><td class="top5">0.01824</td><td class="top5">0.01824</td><td>0.01846</td>
+  </tr>
+  <tr>
+    <td><strong>N-LAK7</strong></td>
+    <td>0.01963</td><td>0.01961</td><td>0.01906</td><td>0.01860</td><td>0.01855</td><td>0.01836</td><td>0.01870</td><td>0.01816</td><td class="best">0.01806</td><td>0.01817</td><td>0.01835</td>
+  </tr>
+  <tr>
+    <td><strong>N-LAK22</strong></td>
+    <td>0.01976</td><td>0.01971</td><td>0.01913</td><td>0.01864</td><td>0.01860</td><td>0.01841</td><td>0.01878</td><td>0.01819</td><td class="top5">0.01811</td><td>0.01818</td><td>0.01838</td>
+  </tr>
+  <tr>
+    <td><strong>N-PSK53A</strong></td>
+    <td>0.01958</td><td>0.01956</td><td>0.01904</td><td>0.01859</td><td>0.01858</td><td>0.01840</td><td>0.01873</td><td>0.01821</td><td class="top5">0.01813</td><td>0.01829</td><td>0.01838</td>
+  </tr>
+</table>
+
+<h2>Best Glass by Surface Position</h2>
+<div class="info">
+  <h3>Best Surface 1 Glasses (averaged across all Surf 10 options)</h3>
+  <table>
+    <tr><th>Rank</th><th>Surf 1 Glass</th><th>Avg MF</th><th>Best MF</th></tr>
+    <tr class="best"><td>1</td><td>N-LAK7</td><td>0.01869</td><td>0.01806</td></tr>
+    <tr><td>2</td><td>N-LAK22</td><td>0.01872</td><td>0.01811</td></tr>
+    <tr><td>3</td><td>N-PSK53A</td><td>0.01872</td><td>0.01813</td></tr>
+    <tr><td>4</td><td>N-LAK21</td><td>0.01873</td><td>0.01824</td></tr>
+    <tr><td>5</td><td>N-SK16</td><td>0.01890</td><td>0.01837</td></tr>
+    <tr><td>6</td><td>N-SSK8</td><td>0.01935</td><td>0.01864</td></tr>
+    <tr><td>7</td><td>N-SK14</td><td>0.01913</td><td>0.01860</td></tr>
+    <tr><td>8</td><td>N-SK2</td><td>0.01916</td><td>0.01844</td></tr>
+    <tr><td>9</td><td>N-BAK4</td><td>0.01969</td><td>0.01902</td></tr>
+    <tr><td>10</td><td>N-K5</td><td>0.02038</td><td>0.01973</td></tr>
+    <tr><td>11</td><td>N-BK7</td><td>0.02031</td><td>0.01967</td></tr>
+  </table>
+
+  <h3>Best Surface 10 Glasses (averaged across all Surf 1 options)</h3>
+  <table>
+    <tr><th>Rank</th><th>Surf 10 Glass</th><th>Avg MF</th><th>Best MF</th></tr>
+    <tr class="best"><td>1</td><td>N-LAK7</td><td>0.01873</td><td>0.01806</td></tr>
+    <tr><td>2</td><td>N-LAK21</td><td>0.01875</td><td>0.01816</td></tr>
+    <tr><td>3</td><td>N-LAK22</td><td>0.01878</td><td>0.01817</td></tr>
+    <tr><td>4</td><td>N-SK16</td><td>0.01893</td><td>0.01836</td></tr>
+    <tr><td>5</td><td>N-PSK53A</td><td>0.01895</td><td>0.01835</td></tr>
+    <tr><td>6</td><td>N-SSK8</td><td>0.01910</td><td>0.01864</td></tr>
+    <tr><td>7</td><td>N-SK14</td><td>0.01913</td><td>0.01855</td></tr>
+    <tr><td>8</td><td>N-SK2</td><td>0.01914</td><td>0.01860</td></tr>
+    <tr><td>9</td><td>N-BAK4</td><td>0.01957</td><td>0.01902</td></tr>
+    <tr><td>10</td><td>N-K5</td><td>0.01988</td><td>0.01961</td></tr>
+    <tr><td>11</td><td>N-BK7</td><td>0.02028</td><td>0.01958</td></tr>
+  </table>
+</div>
+
+<h2>Key Findings</h2>
+<div class="info">
+  <ul>
+    <li><strong>Best combination: N-LAK7 + N-LAK7</strong> (MF = 0.01806) - 3.7% better than Study 2 baseline (0.01874)</li>
+    <li><strong>Runner-up: N-LAK22 + N-LAK7</strong> (MF = 0.01811) - 3.4% better than baseline</li>
+    <li><strong>3rd place: N-PSK53A + N-LAK7</strong> (MF = 0.01813) - 3.3% better than baseline</li>
+    <li><strong>Original Study 2 baseline (N-SK2 + N-SK16):</strong> MF = 0.01874</li>
+    <li><strong>Original Study 1 baseline (SK16 + F5):</strong> MF = 0.01976</li>
+    <li><strong>Overall improvement from original:</strong> 8.6% (0.01976 &rarr; 0.01806)</li>
+    <li>N-LAK7 is the best glass for <em>both</em> surface 1 and surface 10</li>
+    <li>High-index crowns (N-LAK7, N-LAK22, N-LAK21) consistently outperform lower-index crowns</li>
+    <li>Surface 10 glass has slightly more impact on performance than surface 1 glass</li>
+    <li>N-LAK7 on surface 10 produces the best result regardless of which high-index crown is on surface 1</li>
+    <li>Low-index glasses (N-BK7, N-K5) perform worst on both surfaces</li>
+    <li>Symmetric high-index designs (same glass on both surfaces) perform very well</li>
+  </ul>
+</div>
+
+<h2>Cumulative Improvement Across All Three Studies</h2>
+<div class="info">
+  <table>
+    <tr><th>Study</th><th>Surfaces Modified</th><th>Best MF</th><th>Improvement</th></tr>
+    <tr><td>Original Design</td><td>--</td><td>0.01976</td><td>--</td></tr>
+    <tr><td>Study 1 (Symmetric Crown/Flint)</td><td>3/4 &amp; 7/8</td><td>0.01940</td><td>1.8%</td></tr>
+    <tr><td>Study 2 (Asymmetric Crown/Flint)</td><td>3/4 &amp; 7/8</td><td>0.01874</td><td>5.2%</td></tr>
+    <tr class="best"><td>Study 3 (Singlet Crowns)</td><td>1 &amp; 10</td><td>0.01806</td><td>8.6%</td></tr>
+  </table>
+  <p><strong>Final optimized design:</strong> Surf 1: N-LAK7, Surf 3: N-LAK7, Surf 4: LF5, Surf 7: N-SF2, Surf 8: N-LAK7, Surf 10: N-LAK7</p>
+</div>
+
+<p class="note">Generated on 2026-03-06. All optimizations used DLS algorithm with automatic convergence. 121 trials completed.</p>
+
+</body>
+</html>

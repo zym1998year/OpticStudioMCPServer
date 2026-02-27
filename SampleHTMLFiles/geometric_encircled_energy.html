@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Geometric Encircled Energy - Double Gauss 28° Field</title>
+<style>
+    body { font-family: Segoe UI, Arial, sans-serif; background: #1e1e1e; color: #ddd; margin: 0; padding: 20px; }
+    h1 { text-align: center; font-size: 18px; margin-bottom: 5px; }
+    h2 { text-align: center; font-size: 13px; font-weight: normal; color: #aaa; margin-top: 0; }
+    .chart-container { display: flex; justify-content: center; margin-top: 10px; }
+    canvas { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; }
+    .legend { display: flex; justify-content: center; gap: 30px; margin-top: 12px; font-size: 13px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-swatch { width: 28px; height: 3px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<h1>Geometric Encircled Energy</h1>
+<h2>Double Gauss 28&deg; Field &mdash; Polychromatic, Centroid Reference</h2>
+<div class="chart-container">
+    <canvas id="chart" width="780" height="500"></canvas>
+</div>
+<div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:#4fc3f7"></div> 0.00&deg;</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#81c784"></div> 10.00&deg;</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#ff8a65"></div> 14.00&deg;</div>
+</div>
+<script>
+const fields = [
+    {
+        label: "0.00\u00b0",
+        color: "#4fc3f7",
+        fractions: [0,0.010196,0.062149,0.170128,0.28499,0.39438,0.46759,0.50607,0.54331,0.57844,0.61093,0.64574,0.68638,0.74843,0.76657,0.77582,0.78676,0.79849,0.80889,0.81764,0.82736,0.83678,0.84475,0.85335,0.86201,0.87008,0.87732,0.88452,0.89244,0.89934,0.90582,0.91102,0.91596,0.92107,0.92584,0.93028,0.93471,0.93902,0.94374,0.94829,0.9519,0.95494,0.9576,0.95975,0.96183,0.96399,0.96619,0.96866,0.97064,0.97244,0.97451,0.97657,0.9787,0.98054,0.9822,0.98404,0.9851,0.98518,0.98539,0.98567,0.98595,0.98614,0.98637,0.98664,0.98679,0.98694,0.98721,0.98747,0.98758,0.98769,0.98792,0.98815,0.9883,0.98841,0.98854,0.98872,0.98894,0.98908,0.98912,0.98924,0.98949,0.98965,0.98967,0.98975,0.98996,0.99013,0.99018,0.99025,0.99039,0.99053,0.99064,0.99072,0.99079,0.9909,0.99104,0.99114,0.99118,0.99127,0.9914,0.99148,0.99404]
+    },
+    {
+        label: "10.00\u00b0",
+        color: "#81c784",
+        fractions: [0,0.000204,0.002655,0.010375,0.026154,0.047066,0.070955,0.106183,0.14628,0.18786,0.231,0.27512,0.32319,0.37441,0.4272,0.48733,0.54218,0.59847,0.6407,0.67484,0.70498,0.72641,0.74664,0.76782,0.79699,0.81161,0.81905,0.82729,0.83546,0.84313,0.84974,0.85599,0.86254,0.8687,0.87462,0.88031,0.88554,0.89074,0.89614,0.90106,0.90531,0.90944,0.91412,0.91869,0.92245,0.92566,0.92925,0.93278,0.93562,0.93827,0.94084,0.94351,0.94613,0.94849,0.95081,0.95299,0.95534,0.95758,0.95946,0.96156,0.96353,0.96527,0.96719,0.96911,0.9707,0.97212,0.97354,0.97504,0.97639,0.97748,0.9786,0.98001,0.98115,0.98212,0.98315,0.98406,0.9849,0.98568,0.98648,0.98703,0.98763,0.98836,0.98888,0.98918,0.98949,0.98983,0.99006,0.99018,0.99024,0.99037,0.99051,0.99062,0.99071,0.99078,0.99087,0.99101,0.99112,0.99117,0.99124,0.99136,0.99395]
+    },
+    {
+        label: "14.00\u00b0",
+        color: "#ff8a65",
+        fractions: [0,0.000888,0.010249,0.034146,0.07306,0.10966,0.14449,0.18432,0.22668,0.26984,0.31219,0.35517,0.40117,0.447,0.48753,0.51791,0.54913,0.57972,0.60709,0.63175,0.65475,0.6758,0.69564,0.71265,0.72772,0.74225,0.75546,0.76773,0.77918,0.79006,0.79801,0.80384,0.80931,0.81502,0.8206,0.82581,0.8307,0.83555,0.84039,0.84542,0.84981,0.85322,0.85737,0.86172,0.8652,0.86861,0.87217,0.87549,0.87883,0.88209,0.88501,0.88797,0.89093,0.89383,0.89655,0.89908,0.90171,0.90442,0.90695,0.9092,0.91162,0.91407,0.91633,0.91849,0.92076,0.92296,0.92479,0.92689,0.929,0.93094,0.93274,0.9347,0.93651,0.93818,0.93998,0.94179,0.9433,0.94491,0.94652,0.94837,0.9498,0.95108,0.95247,0.95431,0.95559,0.95681,0.95804,0.95955,0.96101,0.96216,0.9633,0.96446,0.96569,0.96696,0.96806,0.96901,0.97015,0.97122,0.97228,0.97328,0.97642]
+    }
+];
+
+const canvas = document.getElementById("chart");
+const ctx = canvas.getContext("2d");
+const W = canvas.width, H = canvas.height;
+const pad = { top: 30, right: 30, bottom: 50, left: 65 };
+const plotW = W - pad.left - pad.right;
+const plotH = H - pad.top - pad.bottom;
+
+const maxRadius = 50;
+const numPoints = 101;
+
+function xPos(r) { return pad.left + (r / maxRadius) * plotW; }
+function yPos(f) { return pad.top + plotH - f * plotH; }
+
+// Grid lines
+ctx.strokeStyle = "#3a3a3a";
+ctx.lineWidth = 1;
+for (let i = 0; i <= 10; i++) {
+    let y = yPos(i / 10);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
+    let x = xPos(i * 5);
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + plotH); ctx.stroke();
+}
+
+// Axes
+ctx.strokeStyle = "#888";
+ctx.lineWidth = 1.5;
+ctx.beginPath();
+ctx.moveTo(pad.left, pad.top);
+ctx.lineTo(pad.left, pad.top + plotH);
+ctx.lineTo(pad.left + plotW, pad.top + plotH);
+ctx.stroke();
+
+// Axis labels
+ctx.fillStyle = "#bbb";
+ctx.font = "12px Segoe UI";
+ctx.textAlign = "center";
+for (let i = 0; i <= 10; i++) {
+    ctx.fillText((i * 5).toString(), xPos(i * 5), pad.top + plotH + 20);
+}
+ctx.fillText("Radius (\u00b5m)", pad.left + plotW / 2, pad.top + plotH + 42);
+
+ctx.textAlign = "right";
+for (let i = 0; i <= 10; i++) {
+    ctx.fillText((i * 10).toString() + "%", pad.left - 8, yPos(i / 10) + 4);
+}
+ctx.save();
+ctx.translate(15, pad.top + plotH / 2);
+ctx.rotate(-Math.PI / 2);
+ctx.textAlign = "center";
+ctx.fillText("Fraction Enclosed", 0, 0);
+ctx.restore();
+
+// Draw curves
+fields.forEach(field => {
+    ctx.strokeStyle = field.color;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    for (let i = 0; i < field.fractions.length; i++) {
+        let r = i * (maxRadius / (numPoints - 1));
+        let x = xPos(r);
+        let y = yPos(field.fractions[i]);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+});
+
+// 80% reference line
+ctx.setLineDash([6, 4]);
+ctx.strokeStyle = "#666";
+ctx.lineWidth = 1;
+ctx.beginPath();
+ctx.moveTo(pad.left, yPos(0.8));
+ctx.lineTo(pad.left + plotW, yPos(0.8));
+ctx.stroke();
+ctx.setLineDash([]);
+ctx.fillStyle = "#777";
+ctx.textAlign = "left";
+ctx.font = "11px Segoe UI";
+ctx.fillText("80% EE", pad.left + plotW - 50, yPos(0.8) - 5);
+</script>
+</body>
+</html>

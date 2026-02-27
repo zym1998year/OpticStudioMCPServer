@@ -1,0 +1,118 @@
+<Window x:Class="ConfigureOllama.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Configure Ollama - ZemaxMCP Bridge Setup"
+        Width="640" Height="560"
+        MinWidth="520" MinHeight="500"
+        WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded">
+    <Window.Resources>
+        <Style x:Key="StatusIndicator" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,2,0,4"/>
+        </Style>
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Margin" Value="0,12,0,4"/>
+        </Style>
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- MCP Server Path -->
+        <TextBlock Grid.Row="0" Text="MCP Server Executable:" Style="{StaticResource SectionHeader}" Margin="0,0,0,4"/>
+
+        <Grid Grid.Row="1" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="txtServerPath" Grid.Column="0" VerticalContentAlignment="Center"
+                     IsReadOnly="True" Padding="4,3"/>
+            <Button Grid.Column="1" Content="Browse..." Padding="12,3" Margin="8,0,0,0"
+                    Click="BrowseServer_Click"/>
+        </Grid>
+
+        <TextBlock Grid.Row="2" x:Name="txtServerStatus" Style="{StaticResource StatusIndicator}"/>
+
+        <!-- Ollama Status -->
+        <TextBlock Grid.Row="3" Text="Ollama:" Style="{StaticResource SectionHeader}"/>
+
+        <Grid Grid.Row="4" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" x:Name="txtOllamaStatus" Style="{StaticResource StatusIndicator}" Margin="0,0,12,0"/>
+            <TextBox Grid.Column="1" x:Name="txtOllamaUrl" Text="http://localhost:11434" VerticalContentAlignment="Center" Padding="4,3"/>
+            <Button Grid.Column="2" Content="Refresh" Padding="12,3" Margin="8,0,0,0"
+                    Click="RefreshOllama_Click"/>
+        </Grid>
+
+        <!-- Model Selection -->
+        <TextBlock Grid.Row="5" Text="Model:" Style="{StaticResource SectionHeader}"/>
+
+        <Grid Grid.Row="6" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <ComboBox Grid.Column="0" x:Name="cmbModels" Padding="4,4" IsEditable="True"/>
+            <Button Grid.Column="1" Content="Pull Model..." Padding="12,3" Margin="8,0,0,0"
+                    Click="PullModel_Click"/>
+        </Grid>
+
+        <!-- Bridge Executable -->
+        <TextBlock Grid.Row="7" Text="Ollama Bridge Executable:" Style="{StaticResource SectionHeader}"/>
+
+        <Grid Grid.Row="8" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="txtBridgePath" Grid.Column="0" VerticalContentAlignment="Center"
+                     IsReadOnly="True" Padding="4,3"/>
+            <Button Grid.Column="1" Content="Browse..." Padding="12,3" Margin="8,0,0,0"
+                    Click="BrowseBridge_Click"/>
+        </Grid>
+
+        <TextBlock Grid.Row="9" x:Name="txtBridgeStatus" Style="{StaticResource StatusIndicator}"/>
+
+        <!-- Actions -->
+        <TextBlock Grid.Row="10" Text="Actions:" Style="{StaticResource SectionHeader}"/>
+
+        <StackPanel Grid.Row="11" Orientation="Horizontal" Margin="0,0,0,4">
+            <Button Content="Create Desktop Shortcut" Style="{StaticResource ActionButton}"
+                    Click="CreateShortcut_Click"/>
+            <Button Content="Launch Bridge" Style="{StaticResource ActionButton}"
+                    Click="LaunchBridge_Click"/>
+            <Button Content="Create Batch File" Style="{StaticResource ActionButton}"
+                    Click="CreateBatchFile_Click"/>
+        </StackPanel>
+
+        <!-- Status Bar -->
+        <TextBlock Grid.Row="13" x:Name="txtStatus" Text="Ready" Foreground="Gray" Margin="0,8,0,0"/>
+    </Grid>
+</Window>

@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ZemaxMCP.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ZemaxMCP.Core\ZemaxMCP.Core.csproj" />
+    <ProjectReference Include="..\ZemaxMCP.Documentation\ZemaxMCP.Documentation.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Zemax ZOS-API References -->
+    <Reference Include="ZOSAPI">
+      <HintPath>$(ZEMAX_ROOT)\ZOSAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ZOSAPI_Interfaces">
+      <HintPath>$(ZEMAX_ROOT)\ZOSAPI_Interfaces.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ZOSAPI_NetHelper">
+      <HintPath>$(ZEMAX_ROOT)\ZOSAPI_NetHelper.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,82 @@
+<Window x:Class="ConfigureClaudeMCP.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Configure Claude MCP - ZemaxMCP Server Setup"
+        Width="620" Height="480"
+        MinWidth="500" MinHeight="420"
+        WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded">
+    <Window.Resources>
+        <Style x:Key="StatusIndicator" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,2,0,4"/>
+        </Style>
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Margin" Value="0,12,0,4"/>
+        </Style>
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Server Executable Path -->
+        <TextBlock Grid.Row="0" Text="Server Executable Path:" Style="{StaticResource SectionHeader}" Margin="0,0,0,4"/>
+
+        <Grid Grid.Row="1" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="txtServerPath" Grid.Column="0" VerticalContentAlignment="Center"
+                     IsReadOnly="True" Padding="4,3"/>
+            <Button Grid.Column="1" Content="Browse..." Padding="12,3" Margin="8,0,0,0"
+                    Click="BrowseServer_Click"/>
+        </Grid>
+
+        <TextBlock Grid.Row="2" x:Name="txtServerStatus" Style="{StaticResource StatusIndicator}"/>
+
+        <!-- Claude Desktop Section -->
+        <TextBlock Grid.Row="3" Text="Claude Desktop:" Style="{StaticResource SectionHeader}"/>
+
+        <TextBlock Grid.Row="4" x:Name="txtDesktopStatus" Style="{StaticResource StatusIndicator}"/>
+
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,0,0,4">
+            <Button Content="Configure Claude Desktop" Style="{StaticResource ActionButton}"
+                    Click="ConfigureClaudeDesktop_Click"/>
+            <Button Content="Remove from Claude Desktop" Style="{StaticResource ActionButton}"
+                    Click="RemoveClaudeDesktop_Click"/>
+        </StackPanel>
+
+        <!-- Claude Code Section -->
+        <TextBlock Grid.Row="6" Text="Claude Code:" Style="{StaticResource SectionHeader}"/>
+
+        <TextBlock Grid.Row="7" x:Name="txtCodeStatus" Style="{StaticResource StatusIndicator}"/>
+
+        <StackPanel Grid.Row="8" Orientation="Horizontal" Margin="0,0,0,4" VerticalAlignment="Top">
+            <Button Content="Configure Claude Code" Style="{StaticResource ActionButton}"
+                    Click="ConfigureClaudeCode_Click"/>
+            <Button Content="Remove from Claude Code" Style="{StaticResource ActionButton}"
+                    Click="RemoveClaudeCode_Click"/>
+        </StackPanel>
+
+        <!-- Status Bar -->
+        <TextBlock Grid.Row="9" x:Name="txtStatus" Text="Ready" Foreground="Gray" Margin="0,8,0,0"/>
+    </Grid>
+</Window>

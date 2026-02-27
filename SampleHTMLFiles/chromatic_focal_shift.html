@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chromatic Focal Shift - Double Gauss 28° SYN3</title>
+    <style>
+        body { font-family: Segoe UI, sans-serif; margin: 20px; background: #1e1e1e; color: #d4d4d4; }
+        canvas { background: #2d2d2d; border: 1px solid #555; }
+        h2 { color: #dcdcaa; }
+        .info { color: #9cdcfe; margin-bottom: 10px; font-size: 14px; }
+        .metrics { margin-top: 12px; font-size: 14px; }
+        .metrics span { color: #4ec9b0; }
+    </style>
+</head>
+<body>
+    <h2>Chromatic Focal Shift vs. Wavelength</h2>
+    <div class="info">Double Gauss 28 degree field SYN3</div>
+    <canvas id="plot" width="800" height="500"></canvas>
+    <div class="metrics">
+        <div>Max focal shift range: <span>100.05 µm</span> &nbsp;|&nbsp; Diffraction-limited depth of focus: <span>30.68 µm</span></div>
+    </div>
+    <script>
+        const wavelengths = [0.4861,0.48752,0.48894,0.49036,0.49177,0.49319,0.49461,0.49603,0.49745,0.49887,0.50028,0.5017,0.50312,0.50454,0.50596,0.50738,0.50879,0.51021,0.51163,0.51305,0.51447,0.51589,0.5173,0.51872,0.52014,0.52156,0.52298,0.52439,0.52581,0.52723,0.52865,0.53007,0.53149,0.5329,0.53432,0.53574,0.53716,0.53858,0.54,0.54141,0.54283,0.54425,0.54567,0.54709,0.54851,0.54993,0.55134,0.55276,0.55418,0.5556,0.55702,0.55844,0.55985,0.56127,0.56269,0.56411,0.56553,0.56695,0.56836,0.56978,0.5712,0.57262,0.57404,0.57546,0.57687,0.57829,0.57971,0.58113,0.58255,0.58396,0.58538,0.5868,0.58822,0.58964,0.59106,0.59247,0.59389,0.59531,0.59673,0.59815,0.59957,0.60098,0.6024,0.60382,0.60524,0.60666,0.60808,0.6095,0.61091,0.61233,0.61375,0.61517,0.61659,0.61801,0.61942,0.62084,0.62226,0.62368,0.6251,0.62652,0.62793,0.62935,0.63077,0.63219,0.63361,0.63502,0.63644,0.63786,0.63928,0.6407,0.64212,0.64354,0.64495,0.64637,0.64779,0.64921,0.65063,0.65204,0.65346,0.65488,0.6563];
+        // Shifts in mm, convert to µm for display
+        const shiftsMM = [0.035873,0.032703,0.029653,0.02672,0.0239,0.021192,0.018592,0.016099,0.013709,0.011421,0.009232,0.007139,0.005141,0.003236,0.001421,-0.000306,-0.001946,-0.003502,-0.004975,-0.006368,-0.007681,-0.008918,-0.010079,-0.011166,-0.012181,-0.013125,-0.014,-0.014807,-0.015548,-0.016225,-0.016838,-0.017389,-0.017879,-0.018309,-0.018682,-0.018997,-0.019257,-0.019462,-0.019614,-0.019713,-0.019761,-0.019758,-0.019706,-0.019607,-0.019459,-0.019266,-0.019027,-0.018744,-0.018417,-0.018047,-0.017636,-0.017184,-0.016691,-0.016159,-0.015588,-0.01498,-0.014334,-0.013652,-0.012934,-0.012182,-0.011394,-0.010574,-0.00972,-0.008833,-0.007915,-0.006966,-0.005985,-0.004975,-0.003936,-0.002867,-0.00177,-0.000645,0.000507,0.001686,0.002892,0.004123,0.00538,0.006662,0.007968,0.009299,0.010653,0.012031,0.013431,0.014854,0.016299,0.017765,0.019253,0.020762,0.022291,0.023841,0.02541,0.026999,0.028607,0.030234,0.03188,0.033543,0.035225,0.036925,0.038641,0.040375,0.042126,0.043893,0.045677,0.047476,0.049292,0.051122,0.052969,0.05483,0.056705,0.058596,0.060501,0.062419,0.064352,0.066299,0.068259,0.070232,0.072218,0.074217,0.076229,0.078253,0.08029];
+        const shifts = shiftsMM.map(s => s * 1000); // Convert to µm
+
+        const canvas = document.getElementById('plot');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        const margin = { top: 30, right: 30, bottom: 50, left: 80 };
+        const pw = W - margin.left - margin.right;
+        const ph = H - margin.top - margin.bottom;
+
+        const wMin = 0.486, wMax = 0.657;
+        const sMin = -30, sMax = 90;
+
+        function toX(w) { return margin.left + ((w - wMin) / (wMax - wMin)) * pw; }
+        function toY(s) { return margin.top + ph - ((s - sMin) / (sMax - sMin)) * ph; }
+
+        // Grid
+        ctx.strokeStyle = '#444'; ctx.lineWidth = 0.5;
+        for (let s = sMin; s <= sMax; s += 10) {
+            ctx.beginPath(); ctx.moveTo(margin.left, toY(s)); ctx.lineTo(W - margin.right, toY(s)); ctx.stroke();
+        }
+        for (let w = 0.49; w <= 0.66; w += 0.01) {
+            ctx.beginPath(); ctx.moveTo(toX(w), margin.top); ctx.lineTo(toX(w), margin.top + ph); ctx.stroke();
+        }
+
+        // Zero line
+        ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.setLineDash([5,3]);
+        ctx.beginPath(); ctx.moveTo(margin.left, toY(0)); ctx.lineTo(W - margin.right, toY(0)); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Diffraction-limited band (±15.34 µm around zero)
+        const dlHalf = 30.675 / 2;
+        ctx.fillStyle = 'rgba(78, 201, 176, 0.1)';
+        ctx.fillRect(margin.left, toY(dlHalf), pw, toY(-dlHalf) - toY(dlHalf));
+        ctx.strokeStyle = 'rgba(78, 201, 176, 0.4)'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+        ctx.beginPath(); ctx.moveTo(margin.left, toY(dlHalf)); ctx.lineTo(W - margin.right, toY(dlHalf)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(margin.left, toY(-dlHalf)); ctx.lineTo(W - margin.right, toY(-dlHalf)); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(78, 201, 176, 0.7)'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left';
+        ctx.fillText('Diffraction-limited DOF', margin.left + 5, toY(dlHalf) - 4);
+
+        // Axes
+        ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(margin.left, margin.top); ctx.lineTo(margin.left, margin.top + ph); ctx.lineTo(W - margin.right, margin.top + ph); ctx.stroke();
+
+        // Axis labels
+        ctx.fillStyle = '#9cdcfe'; ctx.font = '13px Segoe UI'; ctx.textAlign = 'center';
+        for (let w = 0.49; w <= 0.66; w += 0.02) {
+            ctx.fillText(w.toFixed(2), toX(w), margin.top + ph + 20);
+        }
+        ctx.fillText('Wavelength (µm)', margin.left + pw / 2, H - 5);
+
+        ctx.textAlign = 'right';
+        for (let s = sMin; s <= sMax; s += 10) {
+            ctx.fillText(s.toFixed(0), margin.left - 8, toY(s) + 4);
+        }
+        ctx.save(); ctx.translate(15, margin.top + ph / 2); ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center'; ctx.fillText('Focal Shift (µm)', 0, 0);
+        ctx.restore();
+
+        // Plot curve
+        ctx.strokeStyle = '#569cd6'; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (let i = 0; i < wavelengths.length; i++) {
+            const x = toX(wavelengths[i]);
+            const y = toY(shifts[i]);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Mark min and max
+        const minShift = Math.min(...shifts), maxShift = Math.max(...shifts);
+        const minIdx = shifts.indexOf(minShift), maxIdx = shifts.indexOf(maxShift);
+
+        ctx.fillStyle = '#f44747';
+        ctx.beginPath(); ctx.arc(toX(wavelengths[minIdx]), toY(minShift), 4, 0, 2*Math.PI); ctx.fill();
+        ctx.beginPath(); ctx.arc(toX(wavelengths[maxIdx]), toY(maxShift), 4, 0, 2*Math.PI); ctx.fill();
+
+        ctx.fillStyle = '#dcdcaa'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left';
+        ctx.fillText('Min: ' + minShift.toFixed(1) + ' µm @ ' + wavelengths[minIdx].toFixed(3) + ' µm', toX(wavelengths[minIdx]) + 8, toY(minShift) + 4);
+        ctx.fillText('Max: ' + maxShift.toFixed(1) + ' µm @ ' + wavelengths[maxIdx].toFixed(3) + ' µm', toX(wavelengths[maxIdx]) - 100, toY(maxShift) - 10);
+    </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+## .NET / Visual Studio
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# NuGet
+**/packages/*
+*.nupkg
+.nuget/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Build results
+[Bb]uild[Ll]og.*
+*.dll
+*.exe
+*.pdb
+
+# Visual Studio
+.vs/
+*.rsuser
+*.cache
+*.VisualState.xml
+
+# Rider
+.idea/
+
+# User-specific files
+*.user
+*.suo
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Machine-specific build configuration
+ZemaxPaths.props

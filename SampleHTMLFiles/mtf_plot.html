@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MTF - Double Gauss 28° SYN3</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1e1e1e; color: #ddd; margin: 20px; }
+        .chart-container { width: 900px; height: 550px; margin: 0 auto; }
+        h1 { text-align: center; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <h1>Polychromatic MTF &mdash; Double Gauss 28&deg; Field SYN3</h1>
+    <div class="chart-container">
+        <canvas id="mtfChart"></canvas>
+    </div>
+    <script>
+    const freq = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30];
+
+    const dl = [1,0.99732,0.99465,0.99199,0.98934,0.98668,0.98402,0.98137,0.97871,0.97606,0.97340,0.97075,0.96809,0.96543,0.96277,0.96012,0.95746,0.95480,0.95215,0.94949,0.94684,0.94418,0.94153,0.93887,0.93621,0.93356,0.93090,0.92825,0.92559,0.92293,0.92028];
+
+    // Field 1 (0°) - T and S identical
+    const f1t = [1,0.99669,0.99278,0.98795,0.98235,0.97617,0.96945,0.96228,0.95473,0.94686,0.93873,0.93040,0.92191,0.91330,0.90461,0.89588,0.88711,0.87833,0.86957,0.86083,0.85214,0.84349,0.83490,0.82636,0.81790,0.80949,0.80116,0.79290,0.78472,0.77660,0.76855];
+    const f1s = f1t;
+
+    // Field 2 (10°)
+    const f2t = [1,0.99569,0.99014,0.98231,0.97253,0.96124,0.94861,0.93478,0.91993,0.90425,0.88793,0.87110,0.85394,0.83657,0.81912,0.80169,0.78437,0.76726,0.75040,0.73388,0.71774,0.70200,0.68672,0.67191,0.65758,0.64376,0.63044,0.61764,0.60535,0.59359,0.58235];
+    const f2s = [1,0.99561,0.98970,0.98131,0.97082,0.95870,0.94513,0.93028,0.91434,0.89747,0.87983,0.86156,0.84275,0.82353,0.80399,0.78421,0.76426,0.74420,0.72407,0.70393,0.68382,0.66376,0.64381,0.62399,0.60434,0.58490,0.56570,0.54676,0.52810,0.50976,0.49176];
+
+    // Field 3 (14°)
+    const f3t = [1,0.99583,0.99112,0.98430,0.97594,0.96633,0.95546,0.94343,0.93034,0.91630,0.90140,0.88575,0.86944,0.85258,0.83524,0.81752,0.79949,0.78120,0.76271,0.74408,0.72537,0.70662,0.68790,0.66924,0.65070,0.63233,0.61416,0.59625,0.57862,0.56132,0.54437];
+    const f3s = [1,0.99227,0.98027,0.96159,0.93808,0.91183,0.88404,0.85573,0.82783,0.80102,0.77581,0.75242,0.73094,0.71130,0.69333,0.67682,0.66150,0.64720,0.63373,0.62100,0.60888,0.59728,0.58611,0.57530,0.56479,0.55452,0.54447,0.53460,0.52487,0.51527,0.48575];
+
+    const ctx = document.getElementById('mtfChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: freq,
+            datasets: [
+                { label: 'Diffraction Limit', data: dl, borderColor: '#888', borderDash: [6,3], borderWidth: 2, pointRadius: 0, fill: false },
+                { label: '0° T', data: f1t, borderColor: '#00cc00', borderWidth: 2, pointRadius: 0, fill: false },
+                { label: '0° S', data: f1s, borderColor: '#00cc00', borderDash: [4,2], borderWidth: 2, pointRadius: 0, fill: false },
+                { label: '10° T', data: f2t, borderColor: '#3399ff', borderWidth: 2, pointRadius: 0, fill: false },
+                { label: '10° S', data: f2s, borderColor: '#3399ff', borderDash: [4,2], borderWidth: 2, pointRadius: 0, fill: false },
+                { label: '14° T', data: f3t, borderColor: '#ff4444', borderWidth: 2, pointRadius: 0, fill: false },
+                { label: '14° S', data: f3s, borderColor: '#ff4444', borderDash: [4,2], borderWidth: 2, pointRadius: 0, fill: false },
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { title: { display: true, text: 'Spatial Frequency (cy/mm)', color: '#ccc' }, ticks: { color: '#aaa', maxTicksLimit: 16 }, grid: { color: '#333' } },
+                y: { title: { display: true, text: 'Modulation', color: '#ccc' }, min: 0, max: 1, ticks: { color: '#aaa' }, grid: { color: '#333' } }
+            },
+            plugins: {
+                legend: { labels: { color: '#ddd', usePointStyle: true, font: { size: 12 } } },
+                tooltip: { mode: 'index', intersect: false }
+            }
+        }
+    });
+    </script>
+</body>
+</html>

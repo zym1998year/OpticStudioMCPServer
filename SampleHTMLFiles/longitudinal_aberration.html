@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Longitudinal Aberration - Double Gauss 28° SYN3</title>
+    <style>
+        body { font-family: Segoe UI, sans-serif; margin: 20px; background: #1e1e1e; color: #d4d4d4; }
+        canvas { background: #2d2d2d; border: 1px solid #555; }
+        h2 { color: #dcdcaa; }
+        .info { color: #9cdcfe; margin-bottom: 10px; font-size: 14px; }
+        .legend { margin-top: 10px; font-size: 13px; display: flex; gap: 25px; }
+        .legend div { display: flex; align-items: center; gap: 6px; }
+        .swatch { width: 20px; height: 3px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <h2>Longitudinal Aberration vs. Pupil</h2>
+    <div class="info">Double Gauss 28 degree field SYN3 &mdash; On-axis</div>
+    <canvas id="plot" width="800" height="500"></canvas>
+    <div class="legend">
+        <div><span class="swatch" style="background:#569cd6"></span> 0.4861 µm (F-line)</div>
+        <div><span class="swatch" style="background:#4ec9b0"></span> 0.5876 µm (d-line)</div>
+        <div><span class="swatch" style="background:#f44747"></span> 0.6563 µm (C-line)</div>
+    </div>
+    <script>
+        const pupils = [0,0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.2,0.21,0.22,0.23,0.24,0.25,0.26,0.27,0.28,0.29,0.3,0.31,0.32,0.33,0.34,0.35,0.36,0.37,0.38,0.39,0.4,0.41,0.42,0.43,0.44,0.45,0.46,0.47,0.48,0.49,0.5,0.51,0.52,0.53,0.54,0.55,0.56,0.57,0.58,0.59,0.6,0.61,0.62,0.63,0.64,0.65,0.66,0.67,0.68,0.69,0.7,0.71,0.72,0.73,0.74,0.75,0.76,0.77,0.78,0.79,0.8,0.81,0.82,0.83,0.84,0.85,0.86,0.87,0.88,0.89,0.9,0.91,0.92,0.93,0.94,0.95,0.96,0.97,0.98,0.99,1.0];
+
+        // F-line (blue)
+        const abF = [0.03587,0.03584,0.03575,0.03559,0.03537,0.03509,0.03475,0.03434,0.03388,0.03335,0.03277,0.03213,0.03143,0.03067,0.02986,0.02899,0.02807,0.0271,0.02607,0.025,0.02388,0.02271,0.0215,0.02025,0.01896,0.01763,0.01626,0.01486,0.01343,0.01196,0.01048,0.008965,0.007431,0.00588,0.004313,0.002733,0.001145,-0.000449,-0.002046,-0.003641,-0.005232,-0.006814,-0.008384,-0.009937,-0.01147,-0.01298,-0.01446,-0.0159,-0.01731,-0.01867,-0.01998,-0.02124,-0.02244,-0.02358,-0.02465,-0.02564,-0.02655,-0.02737,-0.0281,-0.02873,-0.02925,-0.02965,-0.02994,-0.0301,-0.03012,-0.02999,-0.02972,-0.02929,-0.02868,-0.02791,-0.02694,-0.02579,-0.02442,-0.02285,-0.02105,-0.01902,-0.01674,-0.01421,-0.01142,-0.008341,-0.004979,-0.001315,0.002663,0.006967,0.01161,0.01661,0.02197,0.02772,0.03386,0.04041,0.0474,0.05482,0.06271,0.07107,0.07993,0.08931,0.09921,0.1097,0.1207,0.1323,0.1446];
+
+        // d-line (green)
+        const abD = [-0.000008,-0.000032,-0.000128,-0.000289,-0.000513,-0.0008,-0.001151,-0.001565,-0.00204,-0.002577,-0.003175,-0.003833,-0.00455,-0.005325,-0.006157,-0.007045,-0.007988,-0.008984,-0.01003,-0.01113,-0.01228,-0.01347,-0.01471,-0.01599,-0.01732,-0.01868,-0.02008,-0.02152,-0.02299,-0.02449,-0.02601,-0.02756,-0.02914,-0.03073,-0.03234,-0.03396,-0.03559,-0.03722,-0.03887,-0.04051,-0.04214,-0.04377,-0.04538,-0.04698,-0.04856,-0.05012,-0.05164,-0.05313,-0.05458,-0.05599,-0.05735,-0.05866,-0.05991,-0.06109,-0.0622,-0.06324,-0.06419,-0.06505,-0.06582,-0.06649,-0.06705,-0.0675,-0.06782,-0.06801,-0.06807,-0.06798,-0.06773,-0.06733,-0.06675,-0.066,-0.06506,-0.06392,-0.06257,-0.06101,-0.05922,-0.0572,-0.05493,-0.0524,-0.0496,-0.04652,-0.04314,-0.03946,-0.03547,-0.03114,-0.02646,-0.02143,-0.01603,-0.01023,-0.004038,0.002576,0.009624,0.01712,0.02509,0.03354,0.0425,0.05198,0.062,0.07258,0.08375,0.09552,0.1079];
+
+        // C-line (red)
+        const abC = [0.08028,0.08026,0.08016,0.08001,0.07979,0.0795,0.07916,0.07875,0.07828,0.07775,0.07716,0.07652,0.07581,0.07505,0.07423,0.07336,0.07243,0.07145,0.07042,0.06934,0.06821,0.06704,0.06583,0.06457,0.06327,0.06193,0.06056,0.05915,0.05771,0.05624,0.05475,0.05324,0.0517,0.05014,0.04857,0.04699,0.04541,0.04381,0.04222,0.04062,0.03904,0.03746,0.0359,0.03436,0.03283,0.03134,0.02987,0.02845,0.02706,0.02572,0.02443,0.02319,0.02202,0.02092,0.01988,0.01893,0.01806,0.01729,0.01661,0.01603,0.01557,0.01523,0.01501,0.01492,0.01498,0.01518,0.01554,0.01607,0.01677,0.01765,0.01872,0.02,0.02149,0.02319,0.02513,0.02731,0.02975,0.03244,0.03541,0.03867,0.04222,0.04609,0.05028,0.05481,0.05969,0.06493,0.07056,0.07658,0.08301,0.08986,0.09715,0.1049,0.1131,0.1219,0.1311,0.1409,0.1512,0.1621,0.1736,0.1857,0.1984];
+
+        const canvas = document.getElementById('plot');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        const margin = { top: 30, right: 30, bottom: 50, left: 80 };
+        const pw = W - margin.left - margin.right;
+        const ph = H - margin.top - margin.bottom;
+
+        // Aberration plotted on X, pupil on Y (traditional LA plot orientation)
+        const aMin = -0.1, aMax = 0.2;
+
+        function toX(a) { return margin.left + ((a - aMin) / (aMax - aMin)) * pw; }
+        function toY(p) { return margin.top + ph - p * ph; }
+
+        // Grid
+        ctx.strokeStyle = '#444'; ctx.lineWidth = 0.5;
+        for (let a = aMin; a <= aMax; a += 0.02) {
+            ctx.beginPath(); ctx.moveTo(toX(a), margin.top); ctx.lineTo(toX(a), margin.top + ph); ctx.stroke();
+        }
+        for (let p = 0; p <= 1; p += 0.1) {
+            ctx.beginPath(); ctx.moveTo(margin.left, toY(p)); ctx.lineTo(W - margin.right, toY(p)); ctx.stroke();
+        }
+
+        // Zero line
+        ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.setLineDash([5,3]);
+        ctx.beginPath(); ctx.moveTo(toX(0), margin.top); ctx.lineTo(toX(0), margin.top + ph); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Axes
+        ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(margin.left, margin.top + ph); ctx.lineTo(W - margin.right, margin.top + ph); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(margin.left, margin.top); ctx.lineTo(margin.left, margin.top + ph); ctx.stroke();
+
+        // Axis labels
+        ctx.fillStyle = '#9cdcfe'; ctx.font = '13px Segoe UI'; ctx.textAlign = 'center';
+        for (let a = aMin; a <= aMax + 0.001; a += 0.05) {
+            ctx.fillText(a.toFixed(2), toX(a), margin.top + ph + 20);
+        }
+        ctx.fillText('Focal Shift (mm)', margin.left + pw / 2, H - 5);
+
+        ctx.textAlign = 'right';
+        for (let p = 0; p <= 1; p += 0.1) {
+            ctx.fillText(p.toFixed(1), margin.left - 8, toY(p) + 4);
+        }
+        ctx.save(); ctx.translate(15, margin.top + ph / 2); ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center'; ctx.fillText('Relative Pupil Height', 0, 0);
+        ctx.restore();
+
+        function plotCurve(data, color) {
+            ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (let i = 0; i < pupils.length; i++) {
+                const x = toX(data[i]);
+                const y = toY(pupils[i]);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        plotCurve(abF, '#569cd6');
+        plotCurve(abD, '#4ec9b0');
+        plotCurve(abC, '#f44747');
+    </script>
+</body>
+</html>
