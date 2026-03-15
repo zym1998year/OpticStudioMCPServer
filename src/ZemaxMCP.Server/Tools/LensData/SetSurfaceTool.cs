@@ -15,7 +15,8 @@ public class SetSurfaceTool
     public record SetSurfaceResult(
         bool Success,
         string? Error,
-        Surface UpdatedSurface
+        Surface UpdatedSurface,
+        List<string>? Warnings = null
     );
 
     [McpServerTool(Name = "zemax_set_surface")]
@@ -31,7 +32,9 @@ public class SetSurfaceTool
         [Description("Set as stop surface")] bool? isStop = null,
         [Description("Make radius variable")] bool? radiusVariable = null,
         [Description("Make thickness variable")] bool? thicknessVariable = null,
-        [Description("Make conic variable")] bool? conicVariable = null)
+        [Description("Make conic variable")] bool? conicVariable = null,
+        [Description("Minimum bound for thickness variable. Hard constraint the optimizer cannot violate. Requires OpticStudio 2023+.")] double? thicknessMin = null,
+        [Description("Maximum bound for thickness variable. Hard constraint the optimizer cannot violate. Requires OpticStudio 2023+.")] double? thicknessMax = null)
     {
         try
         {
@@ -47,7 +50,9 @@ public class SetSurfaceTool
                 ["isStop"] = isStop,
                 ["radiusVariable"] = radiusVariable,
                 ["thicknessVariable"] = thicknessVariable,
-                ["conicVariable"] = conicVariable
+                ["conicVariable"] = conicVariable,
+                ["thicknessMin"] = thicknessMin,
+                ["thicknessMax"] = thicknessMax
             };
 
             var result = await _session.ExecuteAsync("SetSurface", parameters, system =>
@@ -100,13 +105,34 @@ public class SetSurfaceTool
                     surface.ConicCell.MakeSolveVariable();
                 }
 
+                // Set variable bounds (requires OpticStudio 2023+ API)
+                var boundsWarnings = new List<string>();
+                if (thicknessMin.HasValue || thicknessMax.HasValue)
+                {
+                    try
+                    {
+                        dynamic cell = surface.ThicknessCell;
+                        if (thicknessMin.HasValue)
+                            cell.Min = thicknessMin.Value;
+                        if (thicknessMax.HasValue)
+                            cell.Max = thicknessMax.Value;
+                    }
+                    catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException)
+                    {
+                        boundsWarnings.Add(
+                            "ThicknessCell.Min/Max properties not available in this OpticStudio version. " +
+                            "Variable bounds require OpticStudio 2023 or later. " +
+                            "Consider using MNCT/MXCT merit function operands as an alternative.");
+                    }
+                }
+
                 return new SetSurfaceResult(
                     Success: true,
                     Error: null,
                     UpdatedSurface: new Surface
                     {
                         Number = surfaceNumber,
-                        Comment = surface.Comment,
+                        Comment = surface.Comment ?? "",
                         Radius = surface.Radius,
                         Thickness = surface.Thickness,
                         Material = surface.Material,
@@ -114,7 +140,8 @@ public class SetSurfaceTool
                         Conic = surface.Conic,
                         SurfaceType = surface.Type.ToString(),
                         IsStop = surface.IsStop
-                    }
+                    },
+                    Warnings: boundsWarnings.Count > 0 ? boundsWarnings : null
                 );
             });
 
