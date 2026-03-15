@@ -90,18 +90,23 @@ public class SetSurfaceTool
                     surface.IsStop = true;
 
                 // Set solve status for variables
+                // If a cell has an active solve (e.g. Pickup, Position), it must be
+                // cleared to Fixed first before it can be made Variable.
                 if (radiusVariable.HasValue && radiusVariable.Value)
                 {
+                    ClearSolveIfNeeded(surface.RadiusCell);
                     surface.RadiusCell.MakeSolveVariable();
                 }
 
                 if (thicknessVariable.HasValue && thicknessVariable.Value)
                 {
+                    ClearSolveIfNeeded(surface.ThicknessCell);
                     surface.ThicknessCell.MakeSolveVariable();
                 }
 
                 if (conicVariable.HasValue && conicVariable.Value)
                 {
+                    ClearSolveIfNeeded(surface.ConicCell);
                     surface.ConicCell.MakeSolveVariable();
                 }
 
@@ -154,6 +159,16 @@ public class SetSurfaceTool
                 Error: ex.Message,
                 UpdatedSurface: new Surface { Number = surfaceNumber }
             );
+        }
+    }
+
+    private static void ClearSolveIfNeeded(dynamic cell)
+    {
+        var solveType = cell.Solve;
+        if (solveType != ZOSAPI.Editors.SolveType.Fixed &&
+            solveType != ZOSAPI.Editors.SolveType.Variable)
+        {
+            cell.MakeSolveFixed();
         }
     }
 }
