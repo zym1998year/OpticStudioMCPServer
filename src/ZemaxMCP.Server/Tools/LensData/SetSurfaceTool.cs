@@ -29,10 +29,10 @@ public class SetSurfaceTool
         [Description("Semi-diameter")] double? semiDiameter = null,
         [Description("Conic constant")] double? conic = null,
         [Description("Surface comment")] string? comment = null,
-        [Description("Set as stop surface")] bool? isStop = null,
-        [Description("Make radius variable")] bool? radiusVariable = null,
-        [Description("Make thickness variable")] bool? thicknessVariable = null,
-        [Description("Make conic variable")] bool? conicVariable = null,
+        [Description("Set as stop surface. Omit to leave unchanged.")] bool? isStop = null,
+        [Description("Make radius variable. Omit to leave unchanged.")] bool? radiusVariable = null,
+        [Description("Make thickness variable. Omit to leave unchanged.")] bool? thicknessVariable = null,
+        [Description("Make conic variable. Omit to leave unchanged.")] bool? conicVariable = null,
         [Description("Minimum bound for thickness variable. Hard constraint the optimizer cannot violate. Requires OpticStudio 2023+.")] double? thicknessMin = null,
         [Description("Maximum bound for thickness variable. Hard constraint the optimizer cannot violate. Requires OpticStudio 2023+.")] double? thicknessMax = null)
     {
