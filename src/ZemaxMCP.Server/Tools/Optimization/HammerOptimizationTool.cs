@@ -31,7 +31,7 @@ public class HammerOptimizationTool
     public async Task<HammerResult> ExecuteAsync(
         [Description("Optimization algorithm: DLS or Orthogonal")] string algorithm = "DLS",
         [Description("Number of CPU cores to use (0 for all available)")] int cores = 0,
-        [Description("Target runtime in minutes (for automatic mode)")] double targetRuntimeMinutes = 1.0,
+        [Description("Target runtime in minutes (for automatic mode)")] double targetRuntimeMinutes = 5.0,
         [Description("Maximum runtime in seconds (timeout)")] double timeoutSeconds = 120,
         [Description("Use automatic optimization mode (true) or fixed cycles (false)")] bool automatic = true)
     {
@@ -90,7 +90,7 @@ public class HammerOptimizationTool
                     // Get variable count
                     var variables = hammer.Variables;
 
-                    string terminationReason;
+                    string terminationReason = "Unknown";
                     var stopwatch = Stopwatch.StartNew();
 
                     // Start Hammer with non-blocking Run(), then poll and cancel
@@ -99,6 +99,7 @@ public class HammerOptimizationTool
                     double bestMerit = double.MaxValue;
                     long lastImprovedMs = 0;
                     long timeoutMs = (long)(timeoutSeconds * 1000);
+                    long totalRuntimeMs = (long)(targetRuntimeMinutes * 60 * 1000);
                     int improvements = 0;
 
                     while (true)
@@ -121,8 +122,18 @@ public class HammerOptimizationTool
                             long idleMs = now - lastImprovedMs;
 
                             // Stop if stagnated (no improvement for timeoutSeconds)
+                            // or if total runtime exceeds targetRuntimeMinutes
                             if (idleMs >= timeoutMs)
+                            {
+                                terminationReason = improvements > 0 ? "Stagnation" : "NoImprovement";
                                 break;
+                            }
+
+                            if (now >= totalRuntimeMs)
+                            {
+                                terminationReason = "MaxRuntime";
+                                break;
+                            }
                         }
                         catch
                         {
@@ -135,7 +146,6 @@ public class HammerOptimizationTool
 
                     stopwatch.Stop();
                     var finalMerit = hammer.CurrentMeritFunction;
-                    terminationReason = improvements > 0 ? "Stagnation" : "NoImprovement";
 
                     return new HammerResult(
                         Success: true,
