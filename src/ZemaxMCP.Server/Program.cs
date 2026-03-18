@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using ModelContextProtocol.Server;
 using Serilog;
 using ZemaxMCP.Core.Logging;
+using ZemaxMCP.Core.Services.ConstrainedOptimization;
 using ZemaxMCP.Core.Session;
 using ZemaxMCP.Documentation;
 using ZemaxMCP.Server.Hosting;
@@ -49,6 +50,7 @@ try
     builder.Services.AddSingleton<IZemaxSession, ZemaxSession>();
     builder.Services.AddSingleton<OperandDatabase>();
     builder.Services.AddSingleton<OperandSearchService>();
+    builder.Services.AddSingleton<ConstraintStore>();
 
     // Add MCP server with stdio transport
     builder.Services.AddMcpServer(options =>
@@ -93,6 +95,10 @@ try
     .WithTools<ZemaxMCP.Server.Tools.Optimization.SaveMeritFunctionFileTool>()
     .WithTools<ZemaxMCP.Server.Tools.Optimization.LoadMeritFunctionFileTool>()
     .WithTools<ZemaxMCP.Server.Tools.Optimization.ForbesMeritFunctionTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.GetVariablesTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.SetVariableConstraintsTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.ConstrainedOptimizeTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.MultistartOptimizeTool>()
     // Lens Data Tools
     .WithTools<ZemaxMCP.Server.Tools.LensData.GetSystemDataTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.GetSurfaceTool>()

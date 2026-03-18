@@ -61,6 +61,26 @@ After adding a tool, verify it's registered by:
 
 ---
 
+## Constrained Optimization Tools
+
+Custom MCP-implemented optimization algorithms (NOT built-in Zemax optimizers). The LM algorithm runs entirely in the MCP server, using ZOSAPI only to get/set variable values and evaluate the merit function.
+
+### Tools
+- `zemax_get_variables` — Scans LDE, fields, MCE for all Variable solves. Returns variable numbers for use with constraint tools.
+- `zemax_set_variable_constraints` — Sets min/max bounds on variables (stored in-memory for the session).
+- `zemax_constrained_optimize` — Bound-constrained Levenberg-Marquardt with optional Broyden rank-1 Jacobian updates.
+- `zemax_multistart_optimize` — Multistart optimizer: randomizes variables within bounds + glass substitution, runs short LM per trial, keeps best.
+
+### Services (ZemaxMCP.Core)
+- `ConstraintStore` — In-memory singleton storing variable constraints keyed by CompositeKey.
+- `VariableScanner` — Scans system for Variable solves across surfaces, fields, MCE.
+- `MeritFunctionReader` — Reads active merit function rows (weight > 0, finite values).
+- `ZosVariableAccessor` — Static methods to get/set variable values on IOpticalSystem.
+- `LMOptimizer` — Core Levenberg-Marquardt optimizer with bounds clamping and Broyden updates.
+- `MultistartOptimizer` — Multistart wrapper: randomizes variables + glasses, runs short LM trials.
+
+---
+
 ## Known Issues & Disabled Tools
 
 ### `zemax_optimization_wizard` - DISABLED

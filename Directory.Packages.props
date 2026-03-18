@@ -20,6 +20,9 @@
     <PackageVersion Include="Serilog.Sinks.Console" Version="5.0.1" />
     <PackageVersion Include="Serilog.Sinks.File" Version="5.0.0" />
 
+    <!-- Math -->
+    <PackageVersion Include="MathNet.Numerics" Version="5.0.0" />
+
     <!-- JSON -->
     <PackageVersion Include="System.Text.Json" Version="8.0.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
