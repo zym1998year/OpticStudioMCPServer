@@ -83,6 +83,14 @@ public class GetSystemDataTool
         for (int i = 0; i < lde.NumberOfSurfaces; i++)
         {
             var row = lde.GetSurfaceAt(i);
+            var materialSolve = row.MaterialCell.Solve;
+            string? substituteCatalog = null;
+            if (materialSolve == ZOSAPI.Editors.SolveType.MaterialSubstitute)
+            {
+                var solveData = row.MaterialCell.GetSolveData();
+                substituteCatalog = solveData._S_MaterialSubstitute?.Catalog;
+            }
+
             surfaces.Add(new Surface
             {
                 Number = i,
@@ -96,7 +104,9 @@ public class GetSystemDataTool
                 IsStop = row.IsStop,
                 RadiusSolve = MapSolveType(row.RadiusCell.Solve),
                 ThicknessSolve = MapSolveType(row.ThicknessCell.Solve),
-                ConicSolve = MapSolveType(row.ConicCell.Solve)
+                ConicSolve = MapSolveType(row.ConicCell.Solve),
+                MaterialSolve = MapSolveType(materialSolve),
+                MaterialSubstituteCatalog = substituteCatalog
             });
         }
 

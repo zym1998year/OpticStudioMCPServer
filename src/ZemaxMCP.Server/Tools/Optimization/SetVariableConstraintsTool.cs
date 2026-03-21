@@ -88,6 +88,11 @@ public class SetVariableConstraintsTool
                     constraintsSet++;
                 }
 
+                // Save constraints to sidecar file
+                var filePath = system.SystemFile;
+                if (!string.IsNullOrEmpty(filePath))
+                    _constraintStore.SaveToFile(filePath);
+
                 return new SetConstraintsResult(
                     Success: true,
                     Error: null,

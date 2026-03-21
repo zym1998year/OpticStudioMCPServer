@@ -15,4 +15,6 @@ public record Surface
     public string RadiusSolve { get; init; } = "";
     public string ThicknessSolve { get; init; } = "";
     public string ConicSolve { get; init; } = "";
+    public string MaterialSolve { get; init; } = "";
+    public string? MaterialSubstituteCatalog { get; init; }
 }

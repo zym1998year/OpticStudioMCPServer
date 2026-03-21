@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
+using ZemaxMCP.Core.Services.ConstrainedOptimization;
 using ZemaxMCP.Core.Session;
 
 namespace ZemaxMCP.Server.Tools.System;
@@ -8,15 +9,21 @@ namespace ZemaxMCP.Server.Tools.System;
 public class OpenFileTool
 {
     private readonly IZemaxSession _session;
+    private readonly ConstraintStore _constraintStore;
 
-    public OpenFileTool(IZemaxSession session) => _session = session;
+    public OpenFileTool(IZemaxSession session, ConstraintStore constraintStore)
+    {
+        _session = session;
+        _constraintStore = constraintStore;
+    }
 
     public record OpenFileResult(
         bool Success,
         string? Error,
         string? FilePath,
         int NumberOfSurfaces,
-        string? Title
+        string? Title,
+        int ConstraintsLoaded
     );
 
     [McpServerTool(Name = "zemax_open_file")]
@@ -33,7 +40,8 @@ public class OpenFileTool
                     Error: $"File not found: {filePath}",
                     FilePath: null,
                     NumberOfSurfaces: 0,
-                    Title: null
+                    Title: null,
+                    ConstraintsLoaded: 0
                 );
             }
 
@@ -43,12 +51,20 @@ public class OpenFileTool
                 new Dictionary<string, object?> { ["filePath"] = filePath },
                 system =>
             {
+                // Load constraints from sidecar file if it exists
+                _constraintStore.Clear();
+                var systemFile = system.SystemFile;
+                int constraintsLoaded = 0;
+                if (!string.IsNullOrEmpty(systemFile))
+                    constraintsLoaded = _constraintStore.LoadFromFile(systemFile);
+
                 return new OpenFileResult(
                     Success: true,
                     Error: null,
-                    FilePath: system.SystemFile,
+                    FilePath: systemFile,
                     NumberOfSurfaces: system.LDE.NumberOfSurfaces,
-                    Title: Path.GetFileNameWithoutExtension(system.SystemFile)
+                    Title: Path.GetFileNameWithoutExtension(systemFile),
+                    ConstraintsLoaded: constraintsLoaded
                 );
             });
 
@@ -61,7 +77,8 @@ public class OpenFileTool
                 Error: ex.Message,
                 FilePath: null,
                 NumberOfSurfaces: 0,
-                Title: null
+                Title: null,
+                ConstraintsLoaded: 0
             );
         }
     }

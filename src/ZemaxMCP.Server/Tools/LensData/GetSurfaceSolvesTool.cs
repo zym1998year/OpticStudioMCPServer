@@ -54,7 +54,7 @@ public class GetSurfaceSolvesTool
                     Thickness = GetSolveDataFromCell(row.ThicknessCell),
                     Conic = GetSolveDataFromCell(row.ConicCell),
                     SemiDiameter = GetSolveDataFromCell(row.SemiDiameterCell),
-                    Material = GetSolveDataFromCell(row.MaterialCell),
+                    Material = GetSolveDataFromCell(row.MaterialCell, row),
                     Parameters = GetParameterSolves(row)
                 };
 
@@ -73,7 +73,7 @@ public class GetSurfaceSolvesTool
         }
     }
 
-    private static SolveData GetSolveDataFromCell(dynamic cell)
+    private static SolveData GetSolveDataFromCell(dynamic cell, ILDERow? row = null)
     {
         var solveData = cell.GetSolveData();
         var solveType = solveData.Type.ToString();
@@ -156,10 +156,11 @@ public class GetSurfaceSolvesTool
                 break;
 
             case SolveType.MaterialSubstitute:
+                var matSub = solveData._S_MaterialSubstitute;
                 result = result with
                 {
-                    Catalog = solveData.MaterialSubstitute_Catalog,
-                    MaterialName = solveData.MaterialSubstitute_Material
+                    Catalog = matSub?.Catalog,
+                    MaterialName = row?.Material
                 };
                 break;
 

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
+using ZemaxMCP.Core.Services.ConstrainedOptimization;
 using ZemaxMCP.Core.Session;
 
 namespace ZemaxMCP.Server.Tools.System;
@@ -8,8 +9,13 @@ namespace ZemaxMCP.Server.Tools.System;
 public class SaveFileTool
 {
     private readonly IZemaxSession _session;
+    private readonly ConstraintStore _constraintStore;
 
-    public SaveFileTool(IZemaxSession session) => _session = session;
+    public SaveFileTool(IZemaxSession session, ConstraintStore constraintStore)
+    {
+        _session = session;
+        _constraintStore = constraintStore;
+    }
 
     public record SaveFileResult(
         bool Success,
@@ -26,10 +32,16 @@ public class SaveFileTool
         {
             await _session.SaveFileAsync(filePath);
 
+            var savedPath = filePath ?? _session.CurrentFilePath;
+
+            // Save constraints sidecar alongside the Zemax file
+            if (!string.IsNullOrEmpty(savedPath))
+                _constraintStore.SaveToFile(savedPath);
+
             return new SaveFileResult(
                 Success: true,
                 Error: null,
-                FilePath: filePath ?? _session.CurrentFilePath
+                FilePath: savedPath
             );
         }
         catch (Exception ex)

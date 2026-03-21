@@ -23,7 +23,8 @@ public class LMOptimizer
         double stepTolerance = 1e-10,
         double functionTolerance = 1e-10,
         bool useBroydenUpdate = false,
-        int maxRestarts = 0)
+        int maxRestarts = 0,
+        Action<int, int, double>? onIterationProgress = null)
     {
         var result = new OptimizationResult();
         double[]? x = null;
@@ -215,6 +216,11 @@ public class LMOptimizer
                             mu *= 0.3333;
                             mu = Math.Max(mu, 1e-15);
                             stepAccepted = true;
+
+                            // Report iteration progress
+                            double iterMerit = SumWeights(newRows) > 0 ? Math.Sqrt(cost / SumWeights(newRows)) : 0;
+                            onIterationProgress?.Invoke(iterations, maxIterations, iterMerit);
+
                             break;
                         }
                         else

@@ -51,6 +51,7 @@ try
     builder.Services.AddSingleton<OperandDatabase>();
     builder.Services.AddSingleton<OperandSearchService>();
     builder.Services.AddSingleton<ConstraintStore>();
+    builder.Services.AddSingleton<MultistartState>();
 
     // Add MCP server with stdio transport
     builder.Services.AddMcpServer(options =>
@@ -99,6 +100,8 @@ try
     .WithTools<ZemaxMCP.Server.Tools.Optimization.SetVariableConstraintsTool>()
     .WithTools<ZemaxMCP.Server.Tools.Optimization.ConstrainedOptimizeTool>()
     .WithTools<ZemaxMCP.Server.Tools.Optimization.MultistartOptimizeTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.MultistartStatusTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.MultistartStopTool>()
     // Lens Data Tools
     .WithTools<ZemaxMCP.Server.Tools.LensData.GetSystemDataTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.GetSurfaceTool>()

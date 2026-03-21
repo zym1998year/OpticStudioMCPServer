@@ -19,11 +19,20 @@ public class MultistartOptimizer
         int maxTrials = 100,
         int lmIterationsPerTrial = 50,
         int initialLmIterations = 200,
-        double randomizationPercent = 10.0,
+        double randomizationPercent = 5.0,
         double initialMu = 1e-3,
         double delta = 1e-7,
         bool useBroydenUpdate = true,
-        int maxRestarts = 0)
+        int maxRestarts = 0,
+        bool constrainedOnly = false,
+        double glassSubstitutionProbability = 0.5,
+        int progressInterval = 0,
+        bool skipInitialLm = false,
+        Action<int, double>? onImprovement = null,
+        Action<int, int, double, int>? onProgress = null,
+        Action? onInitialLmComplete = null,
+        Action<int, int, double>? onInitialLmProgress = null,
+        CancellationToken cancellationToken = default)
     {
         var result = new MultistartResult();
         var rng = new Random();
@@ -34,16 +43,31 @@ public class MultistartOptimizer
             double initialMerit = system.MFE.CalculateMeritFunction();
             result.InitialMerit = initialMerit;
 
-            // Phase 1: Run initial full LM optimization
             var lmOptimizer = new LMOptimizer(_meritReader);
-            var lmResult = lmOptimizer.Optimize(
-                system, variables, initialLmIterations, initialMu, delta,
-                useBroydenUpdate: useBroydenUpdate, maxRestarts: maxRestarts);
+            double postLmMerit;
 
-            result.PostInitialLmMerit = lmResult.FinalMerit;
+            if (skipInitialLm)
+            {
+                // Resume mode: skip initial LM, use current state as baseline
+                postLmMerit = initialMerit;
+            }
+            else
+            {
+                // Phase 1: Run initial full LM optimization
+                var lmResult = lmOptimizer.Optimize(
+                    system, variables, initialLmIterations, initialMu, delta,
+                    useBroydenUpdate: useBroydenUpdate, maxRestarts: maxRestarts,
+                    onIterationProgress: onInitialLmProgress);
+                postLmMerit = lmResult.FinalMerit;
+            }
+
+            result.PostInitialLmMerit = postLmMerit;
+            onInitialLmComplete?.Invoke();
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             // Phase 2: Save baseline state
-            var bestState = CaptureState(system, variables, substituteMaterials, lmResult.FinalMerit);
+            var bestState = CaptureState(system, variables, substituteMaterials, postLmMerit);
 
             // Phase 3: Multistart trials
             int trialsAccepted = 0;
@@ -51,13 +75,15 @@ public class MultistartOptimizer
 
             for (int trial = 1; trial <= maxTrials; trial++)
             {
-                // Randomize continuous variables within bounds
-                RandomizeVariables(system, variables, bestState.VariableValues, fraction, rng);
+                cancellationToken.ThrowIfCancellationRequested();
 
-                // Randomly substitute glasses on MaterialSubstitute surfaces
-                if (substituteMaterials.Count > 0)
+                // Randomize continuous variables within bounds
+                RandomizeVariables(system, variables, bestState.VariableValues, fraction, rng, constrainedOnly);
+
+                // Randomly substitute glass on one MaterialSubstitute surface (based on probability)
+                if (substituteMaterials.Count > 0 && rng.NextDouble() < glassSubstitutionProbability)
                 {
-                    RandomizeGlasses(system, substituteMaterials, rng);
+                    RandomizeOneGlass(system, substituteMaterials, rng);
                 }
 
                 // Run short LM re-optimization
@@ -69,20 +95,42 @@ public class MultistartOptimizer
                 {
                     bestState = CaptureState(system, variables, substituteMaterials, trialResult.FinalMerit);
                     trialsAccepted++;
+                    onImprovement?.Invoke(trial, trialResult.FinalMerit);
                 }
                 else
                 {
                     RestoreState(system, variables, substituteMaterials, bestState);
                     system.MFE.CalculateMeritFunction();
                 }
+
+                // Progress reporting via callback
+                onProgress?.Invoke(trial, maxTrials, bestState.Merit, trialsAccepted);
+
+                // Legacy stderr progress reporting
+                if (progressInterval > 0 && trial % progressInterval == 0)
+                {
+                    Console.Error.WriteLine($"[Multistart] Trial {trial}/{maxTrials} | Best merit: {bestState.Merit:F6} | Accepted: {trialsAccepted}");
+                }
             }
 
             result.TrialsRun = maxTrials;
             result.TrialsAccepted = trialsAccepted;
             result.FinalMerit = bestState.Merit;
+            result.SubstituteMaterialsFound = substituteMaterials.Count;
             result.Success = true;
-            result.Message = $"Multistart optimization completed. {trialsAccepted}/{maxTrials} trials accepted. " +
+            var glassInfo = substituteMaterials.Count > 0
+                ? $" Glass substitution active on {substituteMaterials.Count} surface(s)."
+                : " No MaterialSubstitute surfaces found.";
+            result.Message = $"Multistart optimization completed. {trialsAccepted}/{maxTrials} trials accepted.{glassInfo} " +
                              $"Merit: {result.InitialMerit:F6} -> {result.PostInitialLmMerit:F6} (initial LM) -> {result.FinalMerit:F6} (multistart)";
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancelled by user - restore best state and report partial results
+            RestoreBestEffort(system, variables, substituteMaterials, result);
+            result.Success = true;
+            result.Message = $"Multistart optimization cancelled after trial {result.TrialsRun}. " +
+                             $"Merit: {result.InitialMerit:F6} -> {result.FinalMerit:F6}";
         }
         catch (Exception ex)
         {
@@ -95,7 +143,7 @@ public class MultistartOptimizer
     }
 
     private void RandomizeVariables(IOpticalSystem system, List<OptVariable> variables,
-        double[] bestValues, double fraction, Random rng)
+        double[] bestValues, double fraction, Random rng, bool constrainedOnly)
     {
         for (int i = 0; i < variables.Count; i++)
         {
@@ -105,6 +153,9 @@ public class MultistartOptimizer
 
             if (v.Constraint == ConstraintType.Unconstrained)
             {
+                // Skip unconstrained variables if constrainedOnly is set
+                if (constrainedOnly) continue;
+
                 // For unconstrained variables, use ±fraction of current value
                 range = Math.Abs(bestVal) * fraction;
                 if (range < 1e-10) range = fraction; // fallback for zero values
@@ -126,21 +177,29 @@ public class MultistartOptimizer
         }
     }
 
-    private static void RandomizeGlasses(IOpticalSystem system, List<MaterialInfo> materials, Random rng)
+    private static void RandomizeOneGlass(IOpticalSystem system, List<MaterialInfo> materials, Random rng)
     {
+        // Filter to eligible surfaces
+        var eligible = new List<MaterialInfo>();
         foreach (var mat in materials)
         {
-            if (mat.SolveType != ZOSAPI.Editors.SolveType.MaterialSubstitute)
-                continue;
-            if (mat.SubstituteGlasses == null || mat.SubstituteGlasses.Length <= 1)
-                continue;
-
-            string currentGlass = ZosVariableAccessor.GetGlassMaterial(system, mat.SurfaceIndex);
-            string? newGlass = PickRandomDifferentGlass(rng, mat.SubstituteGlasses, currentGlass);
-            if (newGlass != null)
+            if (mat.SolveType == ZOSAPI.Editors.SolveType.MaterialSubstitute
+                && mat.SubstituteGlasses != null && mat.SubstituteGlasses.Length > 1)
             {
-                ZosVariableAccessor.SetGlassMaterial(system, mat.SurfaceIndex, newGlass);
+                eligible.Add(mat);
             }
+        }
+
+        if (eligible.Count == 0)
+            return;
+
+        // Pick one random surface to substitute
+        var chosen = eligible[rng.Next(eligible.Count)];
+        string currentGlass = ZosVariableAccessor.GetGlassMaterial(system, chosen.SurfaceIndex);
+        string? newGlass = PickRandomDifferentGlass(rng, chosen.SubstituteGlasses, currentGlass);
+        if (newGlass != null)
+        {
+            ZosVariableAccessor.SetGlassMaterial(system, chosen.SurfaceIndex, newGlass);
         }
     }
 
