@@ -67,17 +67,20 @@ Custom MCP-implemented optimization algorithms (NOT built-in Zemax optimizers). 
 
 ### Tools
 - `zemax_get_variables` — Scans LDE, fields, MCE for all Variable solves. Returns variable numbers for use with constraint tools.
-- `zemax_set_variable_constraints` — Sets min/max bounds on variables (stored in-memory for the session).
-- `zemax_constrained_optimize` — Bound-constrained Levenberg-Marquardt with optional Broyden rank-1 Jacobian updates.
-- `zemax_multistart_optimize` — Multistart optimizer: randomizes variables within bounds + glass substitution, runs short LM per trial, keeps best.
+- `zemax_set_variable_constraints` — Sets min/max bounds on variables. Constraints are persisted in a `.constraints` sidecar file alongside the .zmx file and auto-loaded on open.
+- `zemax_constrained_optimize` — Blocking bound-constrained Levenberg-Marquardt with optional Broyden rank-1 Jacobian updates.
+- `zemax_multistart_optimize` — Non-blocking multistart optimizer: randomizes variables within bounds + glass substitution, runs short LM per trial, keeps best. Auto-saves improvements to a `_multistart/` folder.
+- `zemax_multistart_status` — Poll progress of a running multistart optimization (trial count, best merit, acceptance count).
+- `zemax_multistart_stop` — Cancel a running multistart optimization gracefully.
 
 ### Services (ZemaxMCP.Core)
-- `ConstraintStore` — In-memory singleton storing variable constraints keyed by CompositeKey.
-- `VariableScanner` — Scans system for Variable solves across surfaces, fields, MCE.
+- `ConstraintStore` — Singleton storing variable constraints keyed by CompositeKey. Supports save/load to `.constraints` sidecar files.
+- `VariableScanner` — Scans system for Variable solves across surfaces, fields, MCE. Also scans for Material Substitute solves.
 - `MeritFunctionReader` — Reads active merit function rows (weight > 0, finite values).
 - `ZosVariableAccessor` — Static methods to get/set variable values on IOpticalSystem.
 - `LMOptimizer` — Core Levenberg-Marquardt optimizer with bounds clamping and Broyden updates.
 - `MultistartOptimizer` — Multistart wrapper: randomizes variables + glasses, runs short LM trials.
+- `MultistartState` — Shared state for non-blocking multistart (progress, cancellation, save tracking).
 
 ---
 
@@ -94,4 +97,4 @@ Custom MCP-implemented optimization algorithms (NOT built-in Zemax optimizers). 
 - `zemax_load_merit_function_file` - Load pre-built .MF files
 
 ---
-*Last updated: 2025-12-25*
+*Last updated: 2026-03-21*

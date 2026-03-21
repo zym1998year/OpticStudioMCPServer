@@ -18,6 +18,7 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
   - [Lens Data Tools](#lens-data-tools)
   - [Analysis Tools](#analysis-tools)
   - [Optimization Tools](#optimization-tools)
+  - [Constrained Optimization Tools](#constrained-optimization-tools)
   - [Configuration Tools](#configuration-tools)
   - [System Settings Tools](#system-settings-tools)
   - [Glass Catalog Tools](#glass-catalog-tools)
@@ -334,6 +335,53 @@ The AI defaults to **standalone** mode unless you explicitly request extension m
 | `zemax_search_operands` | Search operands by name/description | `query` (**required**) · `maxResults` (opt, default: `10`) · `category` (opt) |
 | `zemax_save_merit_function_file` | Save merit function to .MF file | `filePath` (**required**) |
 | `zemax_load_merit_function_file` | Load merit function from .MF file | `filePath` (**required**) |
+
+### Constrained Optimization Tools
+
+Custom MCP-implemented optimization algorithms that run entirely in the MCP server. These are **not** built-in Zemax optimizers — they use ZOSAPI only to get/set variable values and evaluate the merit function, while the optimization logic (Levenberg-Marquardt with bound constraints) runs server-side.
+
+#### Workflow
+
+1. **Identify variables** — Use `zemax_get_variables` to scan the system for all Variable solves and get their variable numbers.
+2. **Set constraints** — Use `zemax_set_variable_constraints` to define min/max bounds on variables. Constraints are persisted alongside the .zmx file in a sidecar `.constraints` file and are automatically reloaded when the file is opened.
+3. **Optimize** — Run either:
+   - `zemax_constrained_optimize` for a single local optimization (blocking), or
+   - `zemax_multistart_optimize` for a randomized multistart search (non-blocking).
+4. **Monitor** (multistart only) — Poll with `zemax_multistart_status` and cancel with `zemax_multistart_stop`.
+
+#### Tool Reference
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `zemax_get_variables` | Scan system for all Variable solves and their constraint status | *none* |
+| `zemax_set_variable_constraints` | Set min/max bounds on variables | `constraints` (**required**): JSON array of `[{VariableNumber, Constraint, Min, Max}]`. Constraint types: `Unconstrained`, `MinAndMax`, `MinOnly`, `MaxOnly` |
+| `zemax_constrained_optimize` | Bound-constrained Levenberg-Marquardt optimization (blocking) | `maxIterations` (opt, default: `200`) · `initialMu` (opt, default: `1e-3`) · `delta` (opt, default: `1e-7`) · `useBroydenUpdate` (opt, default: `true`) · `maxRestarts` (opt, default: `2`) |
+| `zemax_multistart_optimize` | Non-blocking multistart optimization with randomized restarts | `maxTrials` (opt, default: `100`) · `lmIterationsPerTrial` (opt, default: `50`) · `initialLmIterations` (opt, default: `200`) · `randomizationPercent` (opt, default: `5.0`) · `constrainedOnly` (opt, default: `false`) · `glassSubstitutionProbability` (opt, default: `0.5`) · `progressInterval` (opt, default: `0`) · `resume` (opt, default: `false`) · `initialMu` (opt, default: `1e-3`) · `delta` (opt, default: `1e-7`) · `useBroydenUpdate` (opt, default: `true`) · `maxRestarts` (opt, default: `0`) |
+| `zemax_multistart_status` | Poll progress of a running multistart optimization | *none* |
+| `zemax_multistart_stop` | Cancel a running multistart optimization | *none* |
+
+#### Local Optimization (`zemax_constrained_optimize`)
+
+Runs a bound-constrained Levenberg-Marquardt (LM) optimizer. Variables are clamped to their min/max bounds at each iteration. Optionally uses Broyden rank-1 Jacobian updates to reduce the number of merit function evaluations. When Broyden converges early, the optimizer can auto-restart with a fresh Jacobian (controlled by `maxRestarts`).
+
+**Key features:**
+- Finite-difference Jacobian with configurable step size (`delta`)
+- Broyden rank-1 updates between full Jacobian rebuilds
+- Automatic restarts when convergence stalls
+- Bound clamping at every iteration
+
+#### Multistart Optimization (`zemax_multistart_optimize`)
+
+Launches a non-blocking multistart search that returns immediately. Each trial randomizes continuous variables within their bound ranges (by `randomizationPercent` of the bound width), optionally substitutes glasses on surfaces with Material Substitute solves, then runs a short LM optimization. The best result across all trials is kept.
+
+**Key features:**
+- **Non-blocking** — returns immediately; use `zemax_multistart_status` to poll progress
+- **Initial LM phase** — runs a full LM optimization from the current starting point before trials begin
+- **Auto-save** — saves improving solutions to a `<filename>_multistart/` folder alongside the original file
+- **Constrained-only mode** (`constrainedOnly`) — only randomize variables that have constraints, leaving unconstrained variables at their current best values
+- **Glass substitution** — randomly swaps glasses on surfaces with Material Substitute solves at a configurable probability
+- **Resume** — continue accumulating trials from a previous run, skipping the initial LM phase
+- **Cancellation** — use `zemax_multistart_stop` to gracefully cancel; the optimizer finishes the current trial and restores the best state
 
 ### Configuration Tools
 
