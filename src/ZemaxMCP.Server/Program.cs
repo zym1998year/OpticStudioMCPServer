@@ -16,9 +16,10 @@ Console.SetOut(TextWriter.Null);
 ZOSAPI_NetHelper.ZOSAPI_Initializer.Initialize();
 
 // Configure Serilog - write to file only (console interferes with stdio)
+var serilogPath = Path.Combine(AppContext.BaseDirectory, "logs", "zemaxmcp-.log");
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
-    .WriteTo.File("logs/zemaxmcp-.log", rollingInterval: RollingInterval.Day,
+    .WriteTo.File(serilogPath, rollingInterval: RollingInterval.Day,
         outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
 
