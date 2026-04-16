@@ -156,23 +156,12 @@ try
     var commandLog = host.Services.GetRequiredService<IZemaxCommandLog>();
     Log.Information("ZEMAX Command Log: {LogPath}", commandLog.LogFilePath);
 
-    // Pre-connect to OpticStudio before MCP handshake.
-    // The 3-5 second startup delay occurs here (during process init),
-    // NOT during a tool call — so it won't hit the MCP stdio timeout.
+    // Start OpticStudio connection in background — don't block MCP handshake.
+    // This ensures the MCP server responds to 'initialize' immediately,
+    // avoiding startup timeouts in clients like Codex.
     var session = host.Services.GetRequiredService<IZemaxSession>();
-    try
-    {
-        Log.Information("Pre-connecting to OpticStudio in standalone mode...");
-        var connected = await session.ConnectAsync();
-        if (connected)
-            Log.Information("Pre-connection to OpticStudio successful");
-        else
-            Log.Warning("Pre-connection returned false — will retry via zemax_connect");
-    }
-    catch (Exception ex)
-    {
-        Log.Warning(ex, "Pre-connection to OpticStudio failed — will retry via zemax_connect");
-    }
+    session.StartConnectInBackground(ConnectionMode.Standalone);
+    Log.Information("OpticStudio background connection started");
 
     Log.Information("MCP Server configured, starting...");
     await host.RunAsync();

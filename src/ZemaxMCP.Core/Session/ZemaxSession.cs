@@ -24,6 +24,21 @@ public class ZemaxSession : IZemaxSession
     public string? CurrentFilePath { get; private set; }
     public string? ZemaxDataDir { get; private set; }
 
+    public async Task WaitForBackgroundConnectAsync(CancellationToken cancellationToken = default)
+    {
+        var task = _backgroundConnectTask;
+        if (task != null && !task.IsCompleted)
+        {
+            _logger.LogInformation("Waiting for background connection to complete...");
+            var tcs = new TaskCompletionSource<bool>();
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await Task.WhenAny(task, tcs.Task);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+        }
+    }
+
     public ZemaxSession(ILogger<ZemaxSession> logger, IOptions<ZemaxConnectionOptions> options, IZemaxCommandLog commandLog)
     {
         _logger = logger;
@@ -60,6 +75,19 @@ public class ZemaxSession : IZemaxSession
 
             _logger.LogInformation("Connecting to OpticStudio in {Mode} mode", mode);
 
+            // Diagnostic: dump ALL environment variables for debugging license issues
+            _logger.LogInformation("Thread ApartmentState: {State}", System.Threading.Thread.CurrentThread.GetApartmentState());
+            _logger.LogInformation("Process Bitness: {Bit}", Environment.Is64BitProcess ? "64-bit" : "32-bit");
+            _logger.LogInformation("Working Directory: {Dir}", Environment.CurrentDirectory);
+            _logger.LogInformation("Process Path: {Path}", System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "(null)");
+            var allEnv = Environment.GetEnvironmentVariables();
+            foreach (System.Collections.DictionaryEntry entry in allEnv)
+            {
+                var key = entry.Key?.ToString() ?? "";
+                if (key.Equals("PATH", StringComparison.OrdinalIgnoreCase)) continue; // skip long PATH
+                _logger.LogInformation("ENV {Key}={Value}", key, entry.Value);
+            }
+
             // Initialize ZOSAPI
             bool isInitialized = ZOSAPI_NetHelper.ZOSAPI_Initializer.Initialize();
             if (!isInitialized)
@@ -90,6 +118,9 @@ public class ZemaxSession : IZemaxSession
                         "(Programming > Interactive Extension).");
                 }
             }
+
+            _logger.LogInformation("ZOSAPI Application created. LicenseStatus={Status}, IsValidLicenseForAPI={Valid}",
+                _application.LicenseStatus, _application.IsValidLicenseForAPI);
 
             if (!_application.IsValidLicenseForAPI)
             {
@@ -187,10 +218,10 @@ public class ZemaxSession : IZemaxSession
         Func<IOpticalSystem, T> operation,
         CancellationToken cancellationToken = default)
     {
+        // Wait for background connection if still in progress
         if (IsConnecting)
         {
-            throw new ZemaxConnectionException(
-                "OpticStudio is still connecting in the background. Please wait a moment and try again.");
+            await WaitForBackgroundConnectAsync(cancellationToken);
         }
 
         var sw = Stopwatch.StartNew();
@@ -227,10 +258,10 @@ public class ZemaxSession : IZemaxSession
         Action<IOpticalSystem> operation,
         CancellationToken cancellationToken = default)
     {
+        // Wait for background connection if still in progress
         if (IsConnecting)
         {
-            throw new ZemaxConnectionException(
-                "OpticStudio is still connecting in the background. Please wait a moment and try again.");
+            await WaitForBackgroundConnectAsync(cancellationToken);
         }
 
         var sw = Stopwatch.StartNew();

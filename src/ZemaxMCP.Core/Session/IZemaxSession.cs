@@ -12,6 +12,7 @@ public interface IZemaxSession : IDisposable
     Task<bool> ConnectAsync(CancellationToken cancellationToken = default);
     Task<bool> ConnectAsync(ConnectionMode mode, int instanceId = 0, CancellationToken cancellationToken = default);
     void StartConnectInBackground(ConnectionMode mode = ConnectionMode.Standalone, int instanceId = 0);
+    Task WaitForBackgroundConnectAsync(CancellationToken cancellationToken = default);
     Task DisconnectAsync();
 
     Task<T> ExecuteAsync<T>(Func<IOpticalSystem, T> operation,
