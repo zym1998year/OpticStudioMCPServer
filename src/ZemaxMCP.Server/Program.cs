@@ -83,6 +83,8 @@ try
     .WithTools<ZemaxMCP.Server.Tools.Analysis.GeometricEncircledEnergyTool>()
     .WithTools<ZemaxMCP.Server.Tools.Analysis.GeometricMtfVsFieldTool>()
     .WithTools<ZemaxMCP.Server.Tools.Analysis.RelativeIlluminationTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Analysis.ExportAnalysisTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Analysis.GeometricImageAnalysisTool>()
     // Optimization Tools
     .WithTools<ZemaxMCP.Server.Tools.Optimization.GetMeritFunctionTool>()
     .WithTools<ZemaxMCP.Server.Tools.Optimization.AddOperandTool>()
@@ -114,6 +116,8 @@ try
     .WithTools<ZemaxMCP.Server.Tools.LensData.SetSurfaceSolveTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.GetAsphericSurfaceTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.SetAsphericSurfaceTool>()
+    .WithTools<ZemaxMCP.Server.Tools.LensData.SetSurfaceParameterTool>()
+    .WithTools<ZemaxMCP.Server.Tools.LensData.SetSurfaceTypeTool>()
     // Configuration Tools
     .WithTools<ZemaxMCP.Server.Tools.Configuration.GetConfigurationTool>()
     .WithTools<ZemaxMCP.Server.Tools.Configuration.SetNumberOfConfigurationsTool>()
@@ -151,6 +155,25 @@ try
     // Log the command log file location
     var commandLog = host.Services.GetRequiredService<IZemaxCommandLog>();
     Log.Information("ZEMAX Command Log: {LogPath}", commandLog.LogFilePath);
+
+    // Pre-connect to OpticStudio before MCP handshake.
+    // The 3-5 second startup delay occurs here (during process init),
+    // NOT during a tool call — so it won't hit the MCP stdio timeout.
+    var session = host.Services.GetRequiredService<IZemaxSession>();
+    try
+    {
+        Log.Information("Pre-connecting to OpticStudio in standalone mode...");
+        var connected = await session.ConnectAsync();
+        if (connected)
+            Log.Information("Pre-connection to OpticStudio successful");
+        else
+            Log.Warning("Pre-connection returned false — will retry via zemax_connect");
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Pre-connection to OpticStudio failed — will retry via zemax_connect");
+    }
+
     Log.Information("MCP Server configured, starting...");
     await host.RunAsync();
 }

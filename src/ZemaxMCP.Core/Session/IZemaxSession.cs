@@ -5,11 +5,13 @@ namespace ZemaxMCP.Core.Session;
 public interface IZemaxSession : IDisposable
 {
     bool IsConnected { get; }
+    bool IsConnecting { get; }
     string? CurrentFilePath { get; }
     string? ZemaxDataDir { get; }
 
     Task<bool> ConnectAsync(CancellationToken cancellationToken = default);
     Task<bool> ConnectAsync(ConnectionMode mode, int instanceId = 0, CancellationToken cancellationToken = default);
+    void StartConnectInBackground(ConnectionMode mode = ConnectionMode.Standalone, int instanceId = 0);
     Task DisconnectAsync();
 
     Task<T> ExecuteAsync<T>(Func<IOpticalSystem, T> operation,

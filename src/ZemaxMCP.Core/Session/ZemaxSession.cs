@@ -17,8 +17,10 @@ public class ZemaxSession : IZemaxSession
     private IZOSAPI_Application? _application;
     private IOpticalSystem? _primarySystem;
     private bool _disposed;
+    private Task? _backgroundConnectTask;
 
     public bool IsConnected => _primarySystem != null;
+    public bool IsConnecting => _backgroundConnectTask != null && !_backgroundConnectTask.IsCompleted;
     public string? CurrentFilePath { get; private set; }
     public string? ZemaxDataDir { get; private set; }
 
@@ -147,6 +149,24 @@ public class ZemaxSession : IZemaxSession
         }
     }
 
+    public void StartConnectInBackground(ConnectionMode mode = ConnectionMode.Standalone, int instanceId = 0)
+    {
+        if (IsConnected || IsConnecting) return;
+
+        _logger.LogInformation("Starting background connection to OpticStudio in {Mode} mode", mode);
+        _backgroundConnectTask = Task.Run(async () =>
+        {
+            try
+            {
+                await ConnectAsync(mode, instanceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Background connection to OpticStudio failed");
+            }
+        });
+    }
+
     public async Task<T> ExecuteAsync<T>(
         Func<IOpticalSystem, T> operation,
         CancellationToken cancellationToken = default)
@@ -167,6 +187,12 @@ public class ZemaxSession : IZemaxSession
         Func<IOpticalSystem, T> operation,
         CancellationToken cancellationToken = default)
     {
+        if (IsConnecting)
+        {
+            throw new ZemaxConnectionException(
+                "OpticStudio is still connecting in the background. Please wait a moment and try again.");
+        }
+
         var sw = Stopwatch.StartNew();
         _commandLog.LogCommand(commandName, parameters);
 
@@ -201,6 +227,12 @@ public class ZemaxSession : IZemaxSession
         Action<IOpticalSystem> operation,
         CancellationToken cancellationToken = default)
     {
+        if (IsConnecting)
+        {
+            throw new ZemaxConnectionException(
+                "OpticStudio is still connecting in the background. Please wait a moment and try again.");
+        }
+
         var sw = Stopwatch.StartNew();
         _commandLog.LogCommand(commandName, parameters);
 
