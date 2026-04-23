@@ -54,7 +54,7 @@ public class SetSurfaceTypeTool
 
                 if (listTypes)
                 {
-                    // Use dynamic to access GetSurfaceTypeSettings and enumerate types
+                    // Primary path: dynamic GetAvailableSurfaceTypes (version-sensitive)
                     try
                     {
                         dynamic dynSurface = surface;
@@ -68,8 +68,14 @@ public class SetSurfaceTypeTool
                     }
                     catch
                     {
-                        return new SetSurfaceTypeResult(false,
-                            Error: "Unable to list surface types in this ZOSAPI version.");
+                        // Fallback: enumerate the SurfaceType enum (stable across versions)
+                        var enumNames = Enum.GetNames(typeof(ZOSAPI.Editors.LDE.SurfaceType));
+                        Array.Sort(enumNames, StringComparer.OrdinalIgnoreCase);
+                        return new SetSurfaceTypeResult(
+                            Success: true,
+                            SurfaceNumber: surfaceNumber,
+                            PreviousType: previousType,
+                            AvailableTypes: enumNames);
                     }
                 }
 
