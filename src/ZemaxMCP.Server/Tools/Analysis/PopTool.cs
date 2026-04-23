@@ -27,9 +27,17 @@ public class PopTool
         double PixelPitchY = 0,
         int Nx = 0,
         int Ny = 0,
+        // NEW fields (add at end for JSON compat)
+        int StartSurfaceResolved = 0,
+        int EndSurfaceResolved = 0,
+        int WavelengthResolved = 0,
+        int FieldResolved = 0,
+        double SurfaceToBeamApplied = 0,
+        bool ResampleAfterRefractionApplied = false,
         double[][]? Grid = null,
         string? GridFilePath = null,
-        string? BmpFilePath = null);
+        string? BmpFilePath = null,
+        string? OutputBeamFilePath = null);
 
     // Inline threshold: 256x256 = 65536 cells ~ 2 MB JSON. Larger grids must write to disk.
     private const int InlineGridCellLimit = 65536;
@@ -38,18 +46,27 @@ public class PopTool
     [Description(
         "Run Physical Optics Propagation and return the intensity (or phase) grid. "
         + "Used for wavefront sensor donut simulation: add Zernike phase via zemax_set_extra_data, "
-        + "set surfaceToBeam (defocus offset from source image plane in lens units) to compute the defocused donut. "
+        + "set surfaceToBeam (defocus offset from endSurface in lens units) to compute the defocused donut. "
+        + "startSurface/endSurface control POP propagation range (0=keep default, endSurface=-1 uses image surface). "
+        + "surfaceToBeam is applied AFTER auto-calc; use non-zero value to offset beam from endSurface. "
+        + "autoSampling/autoWidth override autoCalculate per-axis (null inherits from autoCalculate). "
+        + "resampleAfterRefraction forces ResampleAfterRefraction=true on LDE surfaces in [startSurface, endSurface] before running. "
+        + "ignorePolarization maps to settings.UsePolarization=false (skip polarization calculations). "
+        + "outputBeamFilePath dumps a .ZBF file for OpticStudio GUI review (sets SaveOutputBeam=true, OutputBeamFile=path). "
         + "beamType: GaussianWaist, GaussianAngle, GaussianSizeAngle, TopHat, File, DLL, Multimode, AstigmaticGaussian. "
         + "dataType: Irradiance, EXIrradiance, EYIrradiance, Phase, EXPhase, EYPhase, TransferMagnitude, TransferPhase. "
         + "beamParams is a comma-separated list of beam-type-specific parameter values (e.g. \"1.0,1.0,0,0\" for a Gaussian waist beam); "
         + "the tool passes them through to SetParameterValue in order. "
-        + "If autoCalculate=true, Zemax recomputes sampling/width after the user-provided values (so user width/sampling are overridden). "
+        + "If autoCalculate=true, Zemax recomputes sampling/width after the user-provided values (so user width/sampling are overridden "
+        + "unless autoSampling=false or autoWidth=false restores them selectively). "
         + "Grid <= 256x256 returns inline; larger grids require outputGridPath (raw float64 little-endian "
         + "with 24-byte header: int32 Nx | int32 Ny | float64 Dx | float64 Dy, then Ny*Nx*8 bytes row-major). "
         + "All linear units are lens units (usually mm).")]
     public async Task<PopResult> ExecuteAsync(
         [Description("Beam type: GaussianWaist, GaussianAngle, GaussianSizeAngle, TopHat, File, DLL, Multimode, AstigmaticGaussian")] string beamType = "GaussianWaist",
         [Description("Comma-separated beam parameters (indices 1..N per beam type; e.g. \"1.0,1.0,0,0\" for Gaussian waist). Leave empty for defaults.")] string? beamParams = null,
+        [Description("POP start surface (1-indexed); 0 = keep current default")] int startSurface = 0,
+        [Description("POP end surface (1-indexed); -1 = use image surface, 0 = keep current default")] int endSurface = -1,
         [Description("X sampling: 1=32,2=64,3=128,4=256,5=512,6=1024")] int xSampling = 5,
         [Description("Y sampling: same scale as xSampling")] int ySampling = 5,
         [Description("X width in lens units (0 = leave default; overridden if autoCalculate=true)")] double xWidth = 0,
@@ -59,7 +76,14 @@ public class PopTool
         [Description("Use peak-irradiance normalization (sets UsePeakIrradiance)")] bool peakNormalize = false,
         [Description("Surface-to-beam distance in lens units; defocus offset used to produce WFS donut")] double surfaceToBeam = 0,
         [Description("Optional path to write raw grid (required if Nx*Ny > 65536)")] string? outputGridPath = null,
-        [Description("Optional path to export BMP image")] string? exportBmpPath = null)
+        [Description("Optional path to export BMP image")] string? exportBmpPath = null,
+        [Description("Wavelength number (1-indexed); 0 = use all/primary")] int wavelength = 0,
+        [Description("Field number (1-indexed); 0 = use all/primary")] int field = 0,
+        [Description("Split control for sampling auto-calc; null = inherit from autoCalculate")] bool? autoSampling = null,
+        [Description("Split control for width auto-calc; null = inherit from autoCalculate")] bool? autoWidth = null,
+        [Description("Force ResampleAfterRefraction=true on surfaces in [startSurface, endSurface] before running. Mutates LDE but does not save.")] bool resampleAfterRefraction = false,
+        [Description("If true, sets settings.UsePolarization=false (ZOSAPI polarization skip)")] bool ignorePolarization = false,
+        [Description("Optional .ZBF output path; sets SaveOutputBeam=true and OutputBeamFile")] string? outputBeamFilePath = null)
     {
         try
         {
@@ -67,6 +91,8 @@ public class PopTool
             {
                 ["beamType"] = beamType,
                 ["beamParams"] = beamParams,
+                ["startSurface"] = startSurface,
+                ["endSurface"] = endSurface,
                 ["xSampling"] = xSampling,
                 ["ySampling"] = ySampling,
                 ["xWidth"] = xWidth,
@@ -76,7 +102,14 @@ public class PopTool
                 ["peakNormalize"] = peakNormalize,
                 ["surfaceToBeam"] = surfaceToBeam,
                 ["outputGridPath"] = outputGridPath,
-                ["exportBmpPath"] = exportBmpPath
+                ["exportBmpPath"] = exportBmpPath,
+                ["wavelength"] = wavelength,
+                ["field"] = field,
+                ["autoSampling"] = autoSampling,
+                ["autoWidth"] = autoWidth,
+                ["resampleAfterRefraction"] = resampleAfterRefraction,
+                ["ignorePolarization"] = ignorePolarization,
+                ["outputBeamFilePath"] = outputBeamFilePath
             };
 
             return await _session.ExecuteAsync("Pop", parameters, system =>
@@ -101,7 +134,38 @@ public class PopTool
                             Error: $"Invalid dataType '{dataType}'. Valid: Irradiance, EXIrradiance, EYIrradiance, Phase, EXPhase, EYPhase, TransferMagnitude, TransferPhase.");
                     settings.DataType = dt;
 
-                    // Sampling / width
+                    // Surface range (BEFORE sampling/width so auto-calc respects range)
+                    // startSurface: 0 = keep default, positive = explicit
+                    if (startSurface > 0)
+                    {
+                        try { settings.StartSurface.SetSurfaceNumber(startSurface); } catch { }
+                    }
+
+                    // endSurface: -1 = image, 0 = keep default, positive = explicit
+                    if (endSurface == -1)
+                    {
+                        try { settings.EndSurface.UseImageSurface(); } catch { }
+                    }
+                    else if (endSurface > 0)
+                    {
+                        try { settings.EndSurface.SetSurfaceNumber(endSurface); } catch { }
+                    }
+
+                    // Wavelength / Field
+                    if (wavelength > 0)
+                    {
+                        try { settings.Wavelength.SetWavelengthNumber(wavelength); } catch { }
+                    }
+                    if (field > 0)
+                    {
+                        try { settings.Field.SetFieldNumber(field); } catch { }
+                    }
+
+                    // Resolve per-axis auto-calc flags
+                    bool useAutoSampling = autoSampling ?? autoCalculate;
+                    bool useAutoWidth = autoWidth ?? autoCalculate;
+
+                    // Sampling / width (user values first; auto-calc may override below)
                     settings.XSampling = MapSampling(xSampling);
                     settings.YSampling = MapSampling(ySampling);
                     if (xWidth > 0) settings.XWidth = xWidth;
@@ -129,13 +193,63 @@ public class PopTool
                     // Peak-irradiance normalization toggle
                     settings.UsePeakIrradiance = peakNormalize;
 
-                    // Surface-to-beam distance (defocus offset for WFS donut)
-                    settings.SurfaceToBeam = surfaceToBeam;
+                    // Polarization control
+                    try { settings.UsePolarization = !ignorePolarization; } catch { }
 
-                    // Auto-calc as METHOD (after user values; Zemax recomputes sampling/width)
-                    if (autoCalculate)
+                    // Save output beam (.ZBF)
+                    if (!string.IsNullOrWhiteSpace(outputBeamFilePath))
                     {
+                        try { settings.SaveOutputBeam = true; } catch { }
+                        try { settings.OutputBeamFile = outputBeamFilePath; } catch { }
+                    }
+
+                    // ---- Auto-calc with selective restore ----
+                    if (useAutoSampling || useAutoWidth)
+                    {
+                        // Snapshot user values BEFORE auto overwrites them
+                        var savedXSampling = settings.XSampling;
+                        var savedYSampling = settings.YSampling;
+                        double savedXWidth = settings.XWidth;
+                        double savedYWidth = settings.YWidth;
+
                         try { settings.AutoCalculateBeamSampling(); } catch { /* ignore */ }
+
+                        // Restore the axes that should NOT be auto
+                        if (!useAutoSampling)
+                        {
+                            try { settings.XSampling = savedXSampling; } catch { }
+                            try { settings.YSampling = savedYSampling; } catch { }
+                        }
+                        if (!useAutoWidth)
+                        {
+                            try { settings.XWidth = savedXWidth; } catch { }
+                            try { settings.YWidth = savedYWidth; } catch { }
+                        }
+                    }
+
+                    // ---- CRITICAL: SurfaceToBeam applied AFTER auto-calc so it isn't overridden ----
+                    try { settings.SurfaceToBeam = surfaceToBeam; } catch { }
+
+                    // ---- ResampleAfterRefraction iteration on LDE surfaces in range ----
+                    if (resampleAfterRefraction)
+                    {
+                        var lde = system.LDE;
+                        int s0 = startSurface > 0 ? startSurface : 1;
+                        int s1;
+                        try { s1 = settings.EndSurface.GetSurfaceNumber(); }
+                        catch { s1 = lde.NumberOfSurfaces - 1; }
+                        // Clamp defensively
+                        if (s0 < 0) s0 = 0;
+                        if (s1 <= 0 || s1 >= lde.NumberOfSurfaces) s1 = lde.NumberOfSurfaces - 1;
+                        for (int k = s0; k <= s1; k++)
+                        {
+                            try
+                            {
+                                var row = lde.GetSurfaceAt(k);
+                                row.PhysicalOpticsData.ResampleAfterRefraction = true;
+                            }
+                            catch { /* surface may not support this; skip */ }
+                        }
                     }
 
                     analysis.ApplyAndWaitForCompletion();
@@ -241,6 +355,15 @@ public class PopTool
                             bmpPath = exportBmpPath;
                     }
 
+                    // Metadata readback from settings
+                    int startResolved = 0, endResolved = 0, wlResolved = 0, fldResolved = 0;
+                    double surfToBeamApplied = 0;
+                    try { startResolved = settings.StartSurface.GetSurfaceNumber(); } catch { }
+                    try { endResolved = settings.EndSurface.GetSurfaceNumber(); } catch { }
+                    try { wlResolved = settings.Wavelength.GetWavelengthNumber(); } catch { }
+                    try { fldResolved = settings.Field.GetFieldNumber(); } catch { }
+                    try { surfToBeamApplied = settings.SurfaceToBeam; } catch { }
+
                     return new PopResult(
                         Success: true,
                         BeamType: bt.ToString(),
@@ -253,9 +376,16 @@ public class PopTool
                         PixelPitchY: dy,
                         Nx: nx,
                         Ny: ny,
+                        StartSurfaceResolved: startResolved,
+                        EndSurfaceResolved: endResolved,
+                        WavelengthResolved: wlResolved,
+                        FieldResolved: fldResolved,
+                        SurfaceToBeamApplied: surfToBeamApplied,
+                        ResampleAfterRefractionApplied: resampleAfterRefraction,
                         Grid: inlineGrid,
                         GridFilePath: gridFilePath,
-                        BmpFilePath: bmpPath);
+                        BmpFilePath: bmpPath,
+                        OutputBeamFilePath: outputBeamFilePath);
                 }
                 finally
                 {
