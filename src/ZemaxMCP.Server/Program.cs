@@ -119,6 +119,7 @@ try
     .WithTools<ZemaxMCP.Server.Tools.LensData.SetAsphericSurfaceTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.SetSurfaceParameterTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.SetSurfaceTypeTool>()
+    .WithTools<ZemaxMCP.Server.Tools.LensData.RemoveSurfaceTool>()
     // Configuration Tools
     .WithTools<ZemaxMCP.Server.Tools.Configuration.GetConfigurationTool>()
     .WithTools<ZemaxMCP.Server.Tools.Configuration.SetNumberOfConfigurationsTool>()
