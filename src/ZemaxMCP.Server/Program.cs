@@ -121,6 +121,8 @@ try
     .WithTools<ZemaxMCP.Server.Tools.LensData.SetSurfaceTypeTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.RemoveSurfaceTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.ListSurfaceTypesTool>()
+    .WithTools<ZemaxMCP.Server.Tools.LensData.GetExtraDataTool>()
+    .WithTools<ZemaxMCP.Server.Tools.LensData.SetExtraDataTool>()
     // Configuration Tools
     .WithTools<ZemaxMCP.Server.Tools.Configuration.GetConfigurationTool>()
     .WithTools<ZemaxMCP.Server.Tools.Configuration.SetNumberOfConfigurationsTool>()
