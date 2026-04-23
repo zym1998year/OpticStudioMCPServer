@@ -59,6 +59,10 @@ public class PopTool
         + "the tool passes them through to SetParameterValue in order. "
         + "If autoCalculate=true, Zemax recomputes sampling/width after the user-provided values (so user width/sampling are overridden "
         + "unless autoSampling=false or autoWidth=false restores them selectively). "
+        + "CAVEAT (physics, not a bug): POP's Apply stage recomputes the output pixel pitch based on beam diffraction through the system, so "
+        + "gridWidthX/Y (= Nx * PixelPitchX) may not equal the requested xWidth/yWidth even when autoWidth=false. "
+        + "surfaceToBeam likewise feeds Zemax as a hint; if the engine's internal refocus logic decides the evaluation plane, the grid may "
+        + "be insensitive to small surfaceToBeam changes on focused systems. Treat xWidth/surfaceToBeam as requests Zemax may honor or override. "
         + "Grid <= 256x256 returns inline; larger grids require outputGridPath (raw float64 little-endian "
         + "with 24-byte header: int32 Nx | int32 Ny | float64 Dx | float64 Dy, then Ny*Nx*8 bytes row-major). "
         + "All linear units are lens units (usually mm).")]
@@ -360,6 +364,13 @@ public class PopTool
                     double surfToBeamApplied = 0;
                     try { startResolved = settings.StartSurface.GetSurfaceNumber(); } catch { }
                     try { endResolved = settings.EndSurface.GetSurfaceNumber(); } catch { }
+                    // EndSurface.GetSurfaceNumber() returns 0 as a sentinel meaning
+                    // "UseImageSurface()" was called. Translate to the actual image
+                    // surface index so callers see a meaningful number.
+                    if (endResolved == 0)
+                    {
+                        try { endResolved = system.LDE.NumberOfSurfaces - 1; } catch { }
+                    }
                     try { wlResolved = settings.Wavelength.GetWavelengthNumber(); } catch { }
                     try { fldResolved = settings.Field.GetFieldNumber(); } catch { }
                     try { surfToBeamApplied = settings.SurfaceToBeam; } catch { }
