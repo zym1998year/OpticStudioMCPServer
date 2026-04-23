@@ -155,19 +155,30 @@ public class PopTool
                     try { peak = (double)grid.PeakValue; } catch { }
                     try { total = (double)grid.Total; } catch { }
 
-                    // Copy values to double[][]
+                    // Probe once to determine the correct accessor shape.
+                    // Sibling AnalysisBmpHelper uses grid.Z(x, y) for IAR_DataGrid — try it first.
+                    // Fall back to Values[y,x] (2D indexer) then Values(y,x) (method) for version drift.
+                    Func<int, int, double>? reader = null;
+                    try { _ = (double)grid.Z(0, 0); reader = (y, x) => (double)grid.Z(x, y); }
+                    catch
+                    {
+                        try { _ = (double)grid.Values[0, 0]; reader = (y, x) => (double)grid.Values[y, x]; }
+                        catch
+                        {
+                            try { _ = (double)grid.Values(0, 0); reader = (y, x) => (double)grid.Values(y, x); }
+                            catch { }
+                        }
+                    }
+                    if (reader == null)
+                        return new PopResult(false,
+                            Error: "Unable to read POP data grid: none of Z(x,y), Values[y,x], Values(y,x) worked.");
+
                     var values2d = new double[ny][];
                     for (int y = 0; y < ny; y++)
                     {
                         values2d[y] = new double[nx];
                         for (int x = 0; x < nx; x++)
-                        {
-                            try { values2d[y][x] = (double)grid.Values[y, x]; }
-                            catch
-                            {
-                                try { values2d[y][x] = (double)grid.Values(y, x); } catch { }
-                            }
-                        }
+                            values2d[y][x] = reader(y, x);
                     }
 
                     // Decide inline vs file output
