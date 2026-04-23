@@ -45,10 +45,12 @@ public class PopTool
     [McpServerTool(Name = "zemax_pop")]
     [Description(
         "Run Physical Optics Propagation and return the intensity (or phase) grid. "
-        + "Used for wavefront sensor donut simulation: add Zernike phase via zemax_set_extra_data, "
-        + "set surfaceToBeam (defocus offset from endSurface in lens units) to compute the defocused donut. "
+        + "Used for wavefront sensor donut simulation: add Zernike phase via zemax_set_extra_data, then run POP. "
         + "startSurface/endSurface control POP propagation range (0=keep default, endSurface=-1 uses image surface). "
-        + "surfaceToBeam is applied AFTER auto-calc; use non-zero value to offset beam from endSurface. "
+        + "surfaceToBeam is the INPUT-SIDE axial offset of the beam relative to startSurface (NOT output-side defocus). "
+        + "Empirically verified on ZOSAPI 2023 R1.00: varying surfaceToBeam on GaussianWaist over [-1000,+1000]mm "
+        + "produces bit-identical image-plane grids; TopHat shows sub-0.1%% response. "
+        + "To defocus the donut at image, change the image-surface thickness or insert a dummy surface downstream, NOT via surfaceToBeam. "
         + "autoSampling/autoWidth override autoCalculate per-axis (null inherits from autoCalculate). "
         + "resampleAfterRefraction forces ResampleAfterRefraction=true on LDE surfaces in [startSurface, endSurface] before running. "
         + "ignorePolarization maps to settings.UsePolarization=false (skip polarization calculations). "
@@ -78,7 +80,7 @@ public class PopTool
         [Description("Call AutoCalculateBeamSampling() after user values (Zemax overrides sampling/width)")] bool autoCalculate = true,
         [Description("Data type: Irradiance, EXIrradiance, EYIrradiance, Phase, EXPhase, EYPhase, TransferMagnitude, TransferPhase")] string dataType = "Irradiance",
         [Description("Use peak-irradiance normalization (sets UsePeakIrradiance)")] bool peakNormalize = false,
-        [Description("Surface-to-beam distance in lens units; defocus offset used to produce WFS donut")] double surfaceToBeam = 0,
+        [Description("Input-side axial offset of the beam from startSurface (NOT image-plane defocus). For image-plane defocus, modify image-surface thickness or insert a downstream dummy surface instead.")] double surfaceToBeam = 0,
         [Description("Optional path to write raw grid (required if Nx*Ny > 65536)")] string? outputGridPath = null,
         [Description("Optional path to export BMP image")] string? exportBmpPath = null,
         [Description("Wavelength number (1-indexed); 0 = use all/primary")] int wavelength = 0,
