@@ -294,6 +294,10 @@ The AI defaults to **standalone** mode unless you explicitly request extension m
 | `zemax_set_fields` | Set field points | `fields` (**required**): Array of `{x, y, weight}` · `fieldType` (opt, default: `"Angle"`): `Angle`, `ObjectHeight`, `ParaxialImageHeight`, `RealImageHeight` |
 | `zemax_set_wavelengths` | Set wavelengths | `wavelengths` (**required**): Array of `{wavelength (um), weight}` · `primaryWavelength` (opt, default: `1`) |
 | `zemax_set_aperture` | Set system aperture | `value` (**required**): Aperture value · `apertureType` (opt, default: `"EPD"`): `EPD`, `FNumber`, `ObjectNA`, `FloatByStop` |
+| `zemax_remove_surface` | Delete a surface from the Lens Data Editor | `surfaceNumber` (**required**): Surface number to remove (Object 0 and Image not allowed) |
+| `zemax_list_surface_types` | List surface type names supported by ZOSAPI | *none* |
+| `zemax_get_extra_data` | Read Extra Data Editor (XDAT) cells for a surface | `surfaceNumber` (**required**) · `startCell` (opt, default: `1`) · `endCell` (opt, default: `0` = auto-detect) |
+| `zemax_set_extra_data` | Write XDAT cells; batch and Variable-mark supported | `surfaceNumber` (**required**) · `cell` (opt) · `value` (opt) · `makeVariable` (opt) · `batchSet` (opt): e.g. `"3:0.1,4:-0.05"` · `variableCells` (opt): e.g. `"3,4,11"` |
 
 ### Analysis Tools
 
@@ -318,6 +322,7 @@ The AI defaults to **standalone** mode unless you explicitly request extension m
 | `zemax_relative_illumination` | Relative illumination vs. field angle | *none* |
 | `zemax_diffraction_encircled_energy` | FFT diffraction encircled energy | `sampling` (opt, default: `3`) · `useDashes` (opt, default: `false`) |
 | `zemax_geometric_encircled_energy` | Geometric encircled energy (ray-based) | `sampling` (opt, default: `4`) · `showDiffractionLimit` (opt, default: `true`) · `scaleByDiffractionLimit` (opt, default: `false`) · `scatterRays` (opt, default: `false`) · `useDashes` (opt, default: `false`) |
+| `zemax_pop` | Physical Optics Propagation returning intensity/phase grid | `startSurface` (opt, default: `1`) · `endSurface` (opt, default: `-1`=image) · `wavelength` (opt, default: `1`) · `field` (opt, default: `1`) · `beamType` (opt, default: `"GaussianWaist"`) · `beamParam1`-`beamParam4` (opt) · `xSampling`/`ySampling` (opt, default: `5`=512) · `xWidth`/`yWidth` (opt) · `autoCalculate` (opt, default: `true`) · `dataType` (opt, default: `"Irradiance"`): `Irradiance`, `PhaseRadians`, `RealPart`, `ImagPart`, `Ex`, `Ey` · `peakNormalize` (opt) · `outputGridPath` (opt): required if Nx*Ny > 65536 · `exportBmpPath` (opt) |
 
 ### Optimization Tools
 

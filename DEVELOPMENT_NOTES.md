@@ -98,3 +98,17 @@ Custom MCP-implemented optimization algorithms (NOT built-in Zemax optimizers). 
 
 ---
 *Last updated: 2026-03-21*
+
+---
+
+## XDAT (Extra Data Editor) Access Paths
+
+The `zemax_get_extra_data` / `zemax_set_extra_data` tools try three ZOSAPI access paths in priority order. The `AccessPath` field in the tool's response tells you which one worked on your machine:
+
+1. **`SurfaceColumnExtraData`** — `surface.GetSurfaceCell(SurfaceColumn.ExtraData0 + N)` (cleanest; requires the enum value to exist)
+2. **`GetCellAtAbsolute`** — `surface.GetCellAt(absoluteColumnIndex)` where absolute index = base offset + N (base is one of 14, 26, 28, 30)
+3. **`ExtraDataGetCell`** — `surface.ExtraData.GetCell(N)` or similar property path
+
+**Empirical path on this installation:** (to be filled after first successful smoke test — see Task 7.4 of the XDAT/POP tools plan)
+
+If all three paths fail, the tool returns a clear error with surface type info. Report such cases so a new path can be added.
