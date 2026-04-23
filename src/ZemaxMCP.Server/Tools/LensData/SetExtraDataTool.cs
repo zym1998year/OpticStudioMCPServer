@@ -109,7 +109,11 @@ public class SetExtraDataTool
                 var touched = new SortedSet<int>();
                 foreach (var (cn, cv) in writes)
                 {
-                    var xcell = ExtraDataHelper.TryGetCell(surface, cn, out var path);
+                    // Prefer the typed-interface path for Zernike surfaces; fall back
+                    // to the column-probe helper for non-Zernike surface types.
+                    var xcell = ExtraDataHelper.TryGetZernikeCell(surface, cn, out var path);
+                    if (xcell == null)
+                        xcell = ExtraDataHelper.TryGetCell(surface, cn, out path);
                     if (xcell == null)
                         return new SetExtraDataResult(false,
                             Error: $"Cannot access XDAT cell {cn} on surface {surfaceNumber} (type {surfType}).");
@@ -122,7 +126,9 @@ public class SetExtraDataTool
                 // Execute variable marks
                 foreach (var cn in varMarks)
                 {
-                    var xcell = ExtraDataHelper.TryGetCell(surface, cn, out var path);
+                    var xcell = ExtraDataHelper.TryGetZernikeCell(surface, cn, out var path);
+                    if (xcell == null)
+                        xcell = ExtraDataHelper.TryGetCell(surface, cn, out path);
                     if (xcell == null)
                         return new SetExtraDataResult(false,
                             Error: $"Cannot access XDAT cell {cn} for Variable mark on surface {surfaceNumber}.");
@@ -141,7 +147,9 @@ public class SetExtraDataTool
                 var entries = new List<ExtraDataEntry>();
                 foreach (var cn in touched)
                 {
-                    var xcell = ExtraDataHelper.TryGetCell(surface, cn, out _);
+                    var xcell = ExtraDataHelper.TryGetZernikeCell(surface, cn, out _);
+                    if (xcell == null)
+                        xcell = ExtraDataHelper.TryGetCell(surface, cn, out _);
                     if (xcell == null) continue;
                     double v = ExtraDataHelper.ReadValue(xcell);
                     bool isVar = ExtraDataHelper.IsVariable(xcell);

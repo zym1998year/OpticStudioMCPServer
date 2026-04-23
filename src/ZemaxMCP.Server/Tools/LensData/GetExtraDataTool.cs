@@ -62,7 +62,11 @@ public class GetExtraDataTool
 
                 for (int n = startCell; n <= hardLimit; n++)
                 {
-                    var cell = ExtraDataHelper.TryGetCell(surface, n, out var path);
+                    // Prefer the typed-interface path for Zernike surfaces; fall back
+                    // to the column-probe helper for non-Zernike surface types.
+                    var cell = ExtraDataHelper.TryGetZernikeCell(surface, n, out var path);
+                    if (cell == null)
+                        cell = ExtraDataHelper.TryGetCell(surface, n, out path);
                     if (cell == null)
                     {
                         consecutiveFailures++;

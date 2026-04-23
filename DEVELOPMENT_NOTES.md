@@ -103,35 +103,51 @@ Custom MCP-implemented optimization algorithms (NOT built-in Zemax optimizers). 
 
 ## XDAT (Extra Data Editor) Access Paths
 
-The `zemax_get_extra_data` / `zemax_set_extra_data` tools try three ZOSAPI access paths in priority order. The `AccessPath` field in the tool's response tells you which one worked on your machine:
+The `zemax_get_extra_data` / `zemax_set_extra_data` tools try multiple ZOSAPI access paths in priority order. The `AccessPath` field in the tool's response tells you which one worked on your machine:
 
-1. **`SurfaceColumnExtraData`** — `surface.GetSurfaceCell(SurfaceColumn.ExtraData0 + N)` (cleanest; requires the enum value to exist)
-2. **`GetCellAtAbsolute`** — `surface.GetCellAt(absoluteColumnIndex)` where absolute index = base offset + N (base is one of 14, 26, 28, 30)
-3. **`ExtraDataGetCell`** — `surface.ExtraData.GetCell(N)` or similar property path
+1. **`ZernikeTypedInterface`** — `surface.SurfaceData as ISurfaceNthZernike` (and the Phase-variant descendant `ISurfaceZernikeStandardPhase`). Exposes cells with semantic numbering that matches the Zemax UI's Extra Data column. This is the preferred path for every Zernike-family surface.
+2. **`SurfaceColumnExtraData`** — `surface.GetSurfaceCell(SurfaceColumn.ExtraData0 + N)` (requires the enum value to exist).
+3. **`GetCellAtAbsolute`** — `surface.GetCellAt(absoluteColumnIndex)` where absolute index = base offset + N (base is one of 14, 26, 28, 30).
+4. **`ExtraDataGetCell`** — `surface.ExtraData.GetCell(N)` or similar property path.
 
-**Empirical path on this installation:** `GetCellAtAbsolute` with base offset **14** (ZOSAPI 2023 R1.00, smoke-tested 2026-04-23 on `ZernikeStandardPhase` surface). Paths 1 (`SurfaceColumnExtraData`) and 3 (`ExtraDataGetCell`) both fail on this version; only `surface.GetCellAt(14 + cellNumber)` returns usable cells.
+**Empirical behavior on this installation (ZOSAPI 2023 R1.00, smoke-tested 2026-04-23):**
+- For Zernike-family surfaces (ZernikeStandardPhase, ZernikeFringePhase, ZernikeAnnularPhase, and the three Sag variants), the `ZernikeTypedInterface` path succeeds and gives clean access to every cell including `Extrapolate` and `DiffractOrder` (which are inaccessible via `GetCellAtAbsolute`).
+- For other surface types, only `GetCellAtAbsolute` with base offset **14** works; paths 2 and 4 both return null.
 
-If all three paths fail, the tool returns a clear error with surface type info. Report such cases so a new path can be added.
+If every path fails, the tool returns a clear error with surface type info. Report such cases so a new path can be added.
 
-### Cell Number Offset (empirical, ZernikeStandardPhase on ZOSAPI 2023 R1.00)
+### Cell Number Semantics (ZernikeTypedInterface path)
 
-The `cellNumber` parameter in `zemax_get_extra_data` / `zemax_set_extra_data` does NOT match the Zemax-documented XDAT cell index 1:1 on this version. Because `GetCellAt(absoluteColumn)` is used with absolute column indexing, and the first accessible XDAT-like column is absolute column 24 (returning what appears to be `MaxTerm`) and column 25 (returning `NormRadius` default 100 mm), the empirical mapping is:
+When the tool reports `AccessPath: ZernikeTypedInterface`, `cellNumber` maps directly to the Zemax UI's Extra Data rows. The mapping depends on whether the surface is a **Phase** variant (ZernikeStandardPhase, ZernikeFringePhase, ZernikeAnnularPhase) or a **Sag** variant (ZernikeStandardSag, ZernikeFringeSag, ZernikeAnnularSag).
 
-| Tool `cellNumber` | Zernike Standard Phase meaning |
-|-------------------|---------------------------------|
-| 10                | `MaxTerm` (number of Zernike terms; **set this FIRST to unlock coefficient cells**) |
-| 11                | `NormRadius` (normalization radius, lens units) |
-| 12                | `Z1` (first Zernike coefficient) |
-| 12 + (n - 1)      | `Zn` |
-| 11 + MaxTerm      | `Z<MaxTerm>` (last accessible coefficient) |
+**Phase variants** (have `Extrapolate` and `DiffractOrder`):
 
-**Example — set a phase with Z4=0.1, Z5=-0.05, Z11=0.08:**
+| Tool `cellNumber` | Zemax UI meaning |
+|-------------------|-------------------|
+| 1                 | `Extrapolate` (Int32; 0 = off, 1 = on) |
+| 2                 | `DiffractOrder` (Double) |
+| 3                 | `NumberOfTerms` / `MaxTerm` (Int32; **set this FIRST to unlock coefficient cells**) |
+| 4                 | `NormRadius` (Double, lens units) |
+| 5                 | `Z1` (first Zernike coefficient) |
+| 5 + (n - 1)       | `Zn` |
+| 4 + MaxTerm       | `Z<MaxTerm>` (last accessible coefficient) |
+
+**Sag variants** (no `Extrapolate`/`DiffractOrder`):
+
+| Tool `cellNumber` | Zemax UI meaning |
+|-------------------|-------------------|
+| 1                 | `NumberOfTerms` / `MaxTerm` |
+| 2                 | `NormRadius` |
+| 3                 | `Z1` |
+| 3 + (n - 1)       | `Zn` |
+
+**Example — ZernikeStandardPhase, set a phase with Z4 = 0.1, Z5 = -0.05, Z11 = 0.08:**
 ```
-1. zemax_set_extra_data surfaceNumber=<N> cell=10 value=37         (enable 37-term Zernike)
-2. zemax_set_extra_data surfaceNumber=<N> cell=11 value=100        (norm radius in mm)
-3. zemax_set_extra_data surfaceNumber=<N> batchSet='15:0.1,16:-0.05,22:0.08'
-   (Z4→cell 15, Z5→cell 16, Z11→cell 22)
-4. zemax_set_extra_data surfaceNumber=<N> variableCells='15,16,22'  (mark as optimization variables)
+1. zemax_set_extra_data surfaceNumber=<N> cell=3 value=37          (enable 37-term Zernike)
+2. zemax_set_extra_data surfaceNumber=<N> cell=4 value=100         (norm radius in mm)
+3. zemax_set_extra_data surfaceNumber=<N> batchSet='8:0.1,9:-0.05,15:0.08'
+   (Z4 -> cell 5+3=8, Z5 -> cell 9, Z11 -> cell 15)
+4. zemax_set_extra_data surfaceNumber=<N> variableCells='8,9,15'   (mark as optimization variables)
 ```
 
-Cells 1-9 are not accessible via the `GetCellAtAbsolute` path with offset 14. They likely correspond to metadata like `Extrapolate` and `DiffractOrder` that are stored in integer-only columns not exposed by `GetCellAt`. This is a limitation of the current access helper; future work could add type-specific access (e.g., detect `ZernikeStandardPhase` and use a `GetSurfaceTypeSettings`-returned typed interface).
+If the access path is `GetCellAtAbsolute` (non-Zernike surface), `cellNumber` follows absolute column indexing with base offset 14 — see the old-offset mapping that was the only option before the typed-interface path was added: cells 1-9 are inaccessible, cell 10 is `MaxTerm`, cell 11 is `NormRadius`, cell 12+n maps to Zn. Zernike surfaces should no longer hit this code path; if you see it happen, report the case.

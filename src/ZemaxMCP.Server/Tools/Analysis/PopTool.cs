@@ -169,10 +169,6 @@ public class PopTool
                     double widthX = dx * nx;
                     double widthY = dy * ny;
 
-                    double peak = 0, total = 0;
-                    try { peak = (double)grid.PeakValue; } catch { }
-                    try { total = (double)grid.Total; } catch { }
-
                     // Probe once to determine the correct accessor shape.
                     // Sibling AnalysisBmpHelper uses grid.Z(x, y) for IAR_DataGrid — try it first.
                     // Fall back to Values[y,x] (2D indexer) then Values(y,x) (method) for version drift.
@@ -198,6 +194,23 @@ public class PopTool
                         for (int x = 0; x < nx; x++)
                             values2d[y][x] = reader(y, x);
                     }
+
+                    // Compute PeakIrradiance (max |value|) and TotalPower
+                    // (sum * pixel area) from the copied grid. The IAR_DataGrid
+                    // PeakValue/Total properties do not exist on this ZOSAPI
+                    // version, so we integrate directly from the sampled grid.
+                    double peak = 0, total = 0;
+                    for (int y = 0; y < ny; y++)
+                    {
+                        for (int x = 0; x < nx; x++)
+                        {
+                            double v = values2d[y][x];
+                            double a = Math.Abs(v);
+                            if (a > peak) peak = a;
+                            total += v;
+                        }
+                    }
+                    total *= (dx * dy);  // integrate over pixel area
 
                     // Decide inline vs file output
                     int cells = nx * ny;
