@@ -110,9 +110,12 @@ public class SetExtraDataTool
                 foreach (var (cn, cv) in writes)
                 {
                     // Prefer the typed-interface path for Zernike surfaces; fall back
-                    // to the column-probe helper for non-Zernike surface types.
+                    // to the column-probe helper only for non-Zernike surface types.
+                    // On a Zernike surface with an out-of-range cell (path set but cell
+                    // null), don't fall back — writing to a stale LDE column would
+                    // corrupt unrelated state.
                     var xcell = ExtraDataHelper.TryGetZernikeCell(surface, cn, out var path);
-                    if (xcell == null)
+                    if (xcell == null && path != ExtraDataHelper.AccessPath.ZernikeTypedInterface)
                         xcell = ExtraDataHelper.TryGetCell(surface, cn, out path);
                     if (xcell == null)
                         return new SetExtraDataResult(false,
@@ -127,7 +130,7 @@ public class SetExtraDataTool
                 foreach (var cn in varMarks)
                 {
                     var xcell = ExtraDataHelper.TryGetZernikeCell(surface, cn, out var path);
-                    if (xcell == null)
+                    if (xcell == null && path != ExtraDataHelper.AccessPath.ZernikeTypedInterface)
                         xcell = ExtraDataHelper.TryGetCell(surface, cn, out path);
                     if (xcell == null)
                         return new SetExtraDataResult(false,
@@ -147,8 +150,8 @@ public class SetExtraDataTool
                 var entries = new List<ExtraDataEntry>();
                 foreach (var cn in touched)
                 {
-                    var xcell = ExtraDataHelper.TryGetZernikeCell(surface, cn, out _);
-                    if (xcell == null)
+                    var xcell = ExtraDataHelper.TryGetZernikeCell(surface, cn, out var rbPath);
+                    if (xcell == null && rbPath != ExtraDataHelper.AccessPath.ZernikeTypedInterface)
                         xcell = ExtraDataHelper.TryGetCell(surface, cn, out _);
                     if (xcell == null) continue;
                     double v = ExtraDataHelper.ReadValue(xcell);

@@ -63,9 +63,12 @@ public class GetExtraDataTool
                 for (int n = startCell; n <= hardLimit; n++)
                 {
                     // Prefer the typed-interface path for Zernike surfaces; fall back
-                    // to the column-probe helper for non-Zernike surface types.
+                    // to the column-probe helper only for non-Zernike surface types.
+                    // If TryGetZernikeCell signaled this IS a Zernike surface (path set)
+                    // but this particular cell doesn't map, skip the fallback to avoid
+                    // surfacing stale data from an unrelated LDE column.
                     var cell = ExtraDataHelper.TryGetZernikeCell(surface, n, out var path);
-                    if (cell == null)
+                    if (cell == null && path != ExtraDataHelper.AccessPath.ZernikeTypedInterface)
                         cell = ExtraDataHelper.TryGetCell(surface, n, out path);
                     if (cell == null)
                     {
