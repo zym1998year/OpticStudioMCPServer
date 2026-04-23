@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.Globalization;
 using ModelContextProtocol.Server;
 using ZemaxMCP.Core.Session;
 using ZOSAPI.Analysis;
+using ZOSAPI.Analysis.PhysicalOptics;
 
 namespace ZemaxMCP.Server.Tools.Analysis;
 
@@ -15,10 +17,6 @@ public class PopTool
     public record PopResult(
         bool Success,
         string? Error = null,
-        int StartSurface = 0,
-        int EndSurface = 0,
-        int Wavelength = 0,
-        int Field = 0,
         string? BeamType = null,
         string? DataType = null,
         double PeakIrradiance = 0,
@@ -40,27 +38,26 @@ public class PopTool
     [Description(
         "Run Physical Optics Propagation and return the intensity (or phase) grid. "
         + "Used for wavefront sensor donut simulation: add Zernike phase via zemax_set_extra_data, "
-        + "shift focus, then call this tool to get the defocused intensity pattern. "
+        + "set surfaceToBeam (defocus offset from source image plane in lens units) to compute the defocused donut. "
+        + "beamType: GaussianWaist, GaussianAngle, GaussianSizeAngle, TopHat, File, DLL, Multimode, AstigmaticGaussian. "
+        + "dataType: Irradiance, EXIrradiance, EYIrradiance, Phase, EXPhase, EYPhase, TransferMagnitude, TransferPhase. "
+        + "beamParams is a comma-separated list of beam-type-specific parameter values (e.g. \"1.0,1.0,0,0\" for a Gaussian waist beam); "
+        + "the tool passes them through to SetParameterValue in order. "
+        + "If autoCalculate=true, Zemax recomputes sampling/width after the user-provided values (so user width/sampling are overridden). "
         + "Grid <= 256x256 returns inline; larger grids require outputGridPath (raw float64 little-endian "
         + "with 24-byte header: int32 Nx | int32 Ny | float64 Dx | float64 Dy, then Ny*Nx*8 bytes row-major). "
         + "All linear units are lens units (usually mm).")]
     public async Task<PopResult> ExecuteAsync(
-        [Description("Start surface for POP")] int startSurface = 1,
-        [Description("End surface; -1 = image")] int endSurface = -1,
-        [Description("Wavelength number (1-indexed)")] int wavelength = 1,
-        [Description("Field number (1-indexed)")] int field = 1,
-        [Description("Beam type: GaussianWaist, GaussianAngle, GaussianSize, TopHat, FileBeam, etc.")] string beamType = "GaussianWaist",
-        [Description("Beam param 1 (Waist X or beam-type-specific first param, in lens units)")] double beamParam1 = 0,
-        [Description("Beam param 2 (Waist Y)")] double beamParam2 = 0,
-        [Description("Beam param 3 (Decenter X)")] double beamParam3 = 0,
-        [Description("Beam param 4 (Decenter Y)")] double beamParam4 = 0,
+        [Description("Beam type: GaussianWaist, GaussianAngle, GaussianSizeAngle, TopHat, File, DLL, Multimode, AstigmaticGaussian")] string beamType = "GaussianWaist",
+        [Description("Comma-separated beam parameters (indices 1..N per beam type; e.g. \"1.0,1.0,0,0\" for Gaussian waist). Leave empty for defaults.")] string? beamParams = null,
         [Description("X sampling: 1=32,2=64,3=128,4=256,5=512,6=1024")] int xSampling = 5,
         [Description("Y sampling: same scale as xSampling")] int ySampling = 5,
-        [Description("X width in lens units (0 = auto when autoCalculate=true)")] double xWidth = 0,
-        [Description("Y width in lens units (0 = auto when autoCalculate=true)")] double yWidth = 0,
-        [Description("Use Zemax auto sampling/width")] bool autoCalculate = true,
-        [Description("Data type: Irradiance, PhaseRadians, RealPart, ImagPart, Ex, Ey")] string dataType = "Irradiance",
-        [Description("Peak-irradiance normalization")] bool peakNormalize = false,
+        [Description("X width in lens units (0 = leave default; overridden if autoCalculate=true)")] double xWidth = 0,
+        [Description("Y width in lens units (0 = leave default; overridden if autoCalculate=true)")] double yWidth = 0,
+        [Description("Call AutoCalculateBeamSampling() after user values (Zemax overrides sampling/width)")] bool autoCalculate = true,
+        [Description("Data type: Irradiance, EXIrradiance, EYIrradiance, Phase, EXPhase, EYPhase, TransferMagnitude, TransferPhase")] string dataType = "Irradiance",
+        [Description("Use peak-irradiance normalization (sets UsePeakIrradiance)")] bool peakNormalize = false,
+        [Description("Surface-to-beam distance in lens units; defocus offset used to produce WFS donut")] double surfaceToBeam = 0,
         [Description("Optional path to write raw grid (required if Nx*Ny > 65536)")] string? outputGridPath = null,
         [Description("Optional path to export BMP image")] string? exportBmpPath = null)
     {
@@ -68,11 +65,8 @@ public class PopTool
         {
             var parameters = new Dictionary<string, object?>
             {
-                ["startSurface"] = startSurface,
-                ["endSurface"] = endSurface,
-                ["wavelength"] = wavelength,
-                ["field"] = field,
                 ["beamType"] = beamType,
+                ["beamParams"] = beamParams,
                 ["xSampling"] = xSampling,
                 ["ySampling"] = ySampling,
                 ["xWidth"] = xWidth,
@@ -80,6 +74,7 @@ public class PopTool
                 ["autoCalculate"] = autoCalculate,
                 ["dataType"] = dataType,
                 ["peakNormalize"] = peakNormalize,
+                ["surfaceToBeam"] = surfaceToBeam,
                 ["outputGridPath"] = outputGridPath,
                 ["exportBmpPath"] = exportBmpPath
             };
@@ -89,43 +84,66 @@ public class PopTool
                 var analysis = system.Analyses.New_Analysis(AnalysisIDM.PhysicalOpticsPropagation);
                 try
                 {
-                    // Settings configuration via dynamic to tolerate ZOSAPI version drift
-                    dynamic settings = analysis.GetSettings();
+                    var settings = analysis.GetSettings() as IAS_PhysicalOpticsPropagation;
+                    if (settings == null)
+                        return new PopResult(false,
+                            Error: "Failed to cast POP settings to IAS_PhysicalOpticsPropagation.");
 
-                    TrySet(() => settings.Wavelength = wavelength);
-                    TrySet(() => settings.Field = field);
-                    TrySet(() => settings.StartSurface = startSurface);
-                    TrySet(() => settings.EndSurface = endSurface);
-                    TrySet(() => settings.AutoCalculate = autoCalculate);
-                    TrySet(() => settings.PeakIrradiance = peakNormalize);
+                    // BeamType
+                    if (!Enum.TryParse<POPBeamTypes>(beamType, ignoreCase: true, out var bt))
+                        return new PopResult(false,
+                            Error: $"Invalid beamType '{beamType}'. Valid: GaussianWaist, GaussianAngle, GaussianSizeAngle, TopHat, File, DLL, Multimode, AstigmaticGaussian.");
+                    settings.BeamType = bt;
 
-                    TrySet(() => settings.XSampling = MapSampling(xSampling));
-                    TrySet(() => settings.YSampling = MapSampling(ySampling));
+                    // DataType
+                    if (!Enum.TryParse<POPDataTypes>(dataType, ignoreCase: true, out var dt))
+                        return new PopResult(false,
+                            Error: $"Invalid dataType '{dataType}'. Valid: Irradiance, EXIrradiance, EYIrradiance, Phase, EXPhase, EYPhase, TransferMagnitude, TransferPhase.");
+                    settings.DataType = dt;
 
-                    if (!autoCalculate)
+                    // Sampling / width
+                    settings.XSampling = MapSampling(xSampling);
+                    settings.YSampling = MapSampling(ySampling);
+                    if (xWidth > 0) settings.XWidth = xWidth;
+                    if (yWidth > 0) settings.YWidth = yWidth;
+
+                    // Beam parameters: comma-separated, pass through via SetParameterValue.
+                    // Zemax POP UI uses 1-indexed parameter numbering; try 1-indexed first, fall back to 0-indexed.
+                    if (!string.IsNullOrWhiteSpace(beamParams))
                     {
-                        TrySet(() => settings.XWidth = xWidth);
-                        TrySet(() => settings.YWidth = yWidth);
+                        var tokens = beamParams!.Split(',');
+                        for (int i = 0; i < tokens.Length; i++)
+                        {
+                            if (!double.TryParse(tokens[i].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double v))
+                                return new PopResult(false,
+                                    Error: $"Cannot parse beamParams token '{tokens[i]}' at position {i}.");
+                            try { settings.SetParameterValue(i + 1, v); }
+                            catch
+                            {
+                                try { settings.SetParameterValue(i, v); }
+                                catch { /* skip unsupported parameter slot */ }
+                            }
+                        }
                     }
 
-                    // Beam type — try enum parse across common ZOSAPI names
-                    if (!TrySetBeamType(settings, beamType, out string beamTypeError))
-                        return new PopResult(false, Error: beamTypeError);
+                    // Peak-irradiance normalization toggle
+                    settings.UsePeakIrradiance = peakNormalize;
 
-                    TrySet(() => settings.BeamParameter1 = beamParam1);
-                    TrySet(() => settings.BeamParameter2 = beamParam2);
-                    TrySet(() => settings.BeamParameter3 = beamParam3);
-                    TrySet(() => settings.BeamParameter4 = beamParam4);
+                    // Surface-to-beam distance (defocus offset for WFS donut)
+                    settings.SurfaceToBeam = surfaceToBeam;
 
-                    if (!TrySetDataType(settings, dataType, out string dataTypeError))
-                        return new PopResult(false, Error: dataTypeError);
+                    // Auto-calc as METHOD (after user values; Zemax recomputes sampling/width)
+                    if (autoCalculate)
+                    {
+                        try { settings.AutoCalculateBeamSampling(); } catch { /* ignore */ }
+                    }
 
                     analysis.ApplyAndWaitForCompletion();
 
                     var results = analysis.GetResults();
                     dynamic resultsDyn = results;
 
-                    // Extract grid via dynamic (GetDataGrid / GetDataGridDouble)
+                    // Extract grid via dynamic (GetDataGrid / GetDataGridDouble / DataGrids[0])
                     dynamic? grid = null;
                     try { grid = resultsDyn.DataGrids != null && resultsDyn.NumberOfDataGrids > 0 ? resultsDyn.DataGrids[0] : null; }
                     catch { }
@@ -142,7 +160,7 @@ public class PopTool
 
                     if (grid == null)
                         return new PopResult(false,
-                            Error: "POP analysis produced no data grid. Check startSurface/endSurface and beam settings.");
+                            Error: "POP analysis produced no data grid. Check beam settings and surface configuration.");
 
                     int nx = (int)grid.Nx;
                     int ny = (int)grid.Ny;
@@ -212,12 +230,8 @@ public class PopTool
 
                     return new PopResult(
                         Success: true,
-                        StartSurface: startSurface,
-                        EndSurface: endSurface,
-                        Wavelength: wavelength,
-                        Field: field,
-                        BeamType: beamType,
-                        DataType: dataType,
+                        BeamType: bt.ToString(),
+                        DataType: dt.ToString(),
                         PeakIrradiance: peak,
                         TotalPower: total,
                         GridWidthX: widthX,
@@ -240,108 +254,6 @@ public class PopTool
         {
             return new PopResult(false, Error: ex.Message);
         }
-    }
-
-    private static void TrySet(Action setter)
-    {
-        try { setter(); } catch { /* property not supported in this ZOSAPI version; skip */ }
-    }
-
-    private static bool TrySetBeamType(dynamic settings, string beamType, out string error)
-    {
-        error = "";
-        // Try on multiple candidate enum types and property names
-        string[] enumTypeNames =
-        {
-            "ZOSAPI.Analysis.Settings.PhysicalOptics.POPBeamTypes",
-            "ZOSAPI.Analysis.Settings.POP.POPBeamTypes",
-            "ZOSAPI.Analysis.PhysicalOpticsPropagation.POPBeamTypes"
-        };
-        string[] propertyNames = { "BeamType", "SourceBeamType", "InputBeamType" };
-
-        foreach (var tn in enumTypeNames)
-        {
-            var enumType = Type.GetType(tn + ", ZOSAPI");
-            if (enumType == null) continue;
-            if (!TryParseEnumCaseInsensitive(enumType, beamType, out object? enumVal)) continue;
-
-            foreach (var pn in propertyNames)
-            {
-                try
-                {
-                    var prop = ((object)settings).GetType().GetProperty(pn);
-                    if (prop == null) continue;
-                    prop.SetValue(settings, enumVal);
-                    return true;
-                }
-                catch { }
-            }
-        }
-
-        // Fallback: try assigning the string directly (some ZOSAPI versions accept string setters)
-        try { settings.BeamType = beamType; return true; } catch { }
-
-        error = $"Unable to set beam type '{beamType}'. Tried enums POPBeamTypes in multiple namespaces and properties BeamType/SourceBeamType/InputBeamType.";
-        return false;
-    }
-
-    private static bool TrySetDataType(dynamic settings, string dataType, out string error)
-    {
-        error = "";
-        string[] enumTypeNames =
-        {
-            "ZOSAPI.Analysis.Settings.PhysicalOptics.POPDataTypes",
-            "ZOSAPI.Analysis.Settings.POP.POPDataTypes",
-            "ZOSAPI.Analysis.PhysicalOpticsPropagation.POPDataTypes"
-        };
-        string[] propertyNames = { "DataType", "OutputDataType" };
-
-        foreach (var tn in enumTypeNames)
-        {
-            var enumType = Type.GetType(tn + ", ZOSAPI");
-            if (enumType == null) continue;
-            if (!TryParseEnumCaseInsensitive(enumType, dataType, out object? enumVal)) continue;
-
-            foreach (var pn in propertyNames)
-            {
-                try
-                {
-                    var prop = ((object)settings).GetType().GetProperty(pn);
-                    if (prop == null) continue;
-                    prop.SetValue(settings, enumVal);
-                    return true;
-                }
-                catch { }
-            }
-        }
-
-        try { settings.DataType = dataType; return true; } catch { }
-
-        error = $"Unable to set data type '{dataType}'.";
-        return false;
-    }
-
-    /// <summary>
-    /// Case-insensitive enum parse compatible with .NET Framework 4.8
-    /// (which lacks the generic non-generic TryParse ignoreCase overload).
-    /// </summary>
-    private static bool TryParseEnumCaseInsensitive(Type enumType, string value, out object? result)
-    {
-        result = null;
-        if (string.IsNullOrEmpty(value)) return false;
-        try
-        {
-            foreach (var name in Enum.GetNames(enumType))
-            {
-                if (string.Equals(name, value, StringComparison.OrdinalIgnoreCase))
-                {
-                    result = Enum.Parse(enumType, name);
-                    return true;
-                }
-            }
-        }
-        catch { }
-        return false;
     }
 
     private static ZOSAPI.Analysis.SampleSizes MapSampling(int sampling) => sampling switch
