@@ -116,6 +116,9 @@ try
     .WithTools<ZemaxMCP.Server.Tools.Optimization.GlobalSearchAsyncTool>()
     .WithTools<ZemaxMCP.Server.Tools.Optimization.GlobalSearchStatusTool>()
     .WithTools<ZemaxMCP.Server.Tools.Optimization.GlobalSearchStopTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.OptimizeAsyncTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.OptimizeStatusTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.OptimizeStopTool>()
     // Lens Data Tools
     .WithTools<ZemaxMCP.Server.Tools.LensData.GetSystemDataTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.GetSurfaceTool>()

@@ -179,7 +179,7 @@ public class OptimizeTool
     /// <summary>
     /// Maps cycle count to ZOSAPI OptimizationCycles enum
     /// </summary>
-    private static OptimizationCycles MapCyclesToEnum(int cycles)
+    public static OptimizationCycles MapCyclesToEnum(int cycles)
     {
         return cycles switch
         {
