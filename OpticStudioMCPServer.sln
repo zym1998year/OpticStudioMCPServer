@@ -19,6 +19,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZemaxMCP.OllamaBridge", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConfigureOllama", "src\ConfigureOllama\ConfigureOllama.csproj", "{8E404388-DDAD-4D38-BB8F-5890F63DFF87}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{C6F73185-CB60-41BA-A28D-7847EB4ADD17}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZemaxMCP.Core.Tests", "tests\ZemaxMCP.Core.Tests\ZemaxMCP.Core.Tests.csproj", "{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -113,6 +117,18 @@ Global
 		{8E404388-DDAD-4D38-BB8F-5890F63DFF87}.Release|x64.Build.0 = Release|Any CPU
 		{8E404388-DDAD-4D38-BB8F-5890F63DFF87}.Release|x86.ActiveCfg = Release|Any CPU
 		{8E404388-DDAD-4D38-BB8F-5890F63DFF87}.Release|x86.Build.0 = Release|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Debug|x64.Build.0 = Debug|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Debug|x86.Build.0 = Debug|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Release|x64.ActiveCfg = Release|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Release|x64.Build.0 = Release|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Release|x86.ActiveCfg = Release|Any CPU
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -120,5 +136,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{6ED365FE-2432-4969-A514-BDF0309FCF63} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{8E404388-DDAD-4D38-BB8F-5890F63DFF87} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{0CCA4FDE-D8E5-432B-B1FA-B1A77CF5CD9F} = {C6F73185-CB60-41BA-A28D-7847EB4ADD17}
 	EndGlobalSection
 EndGlobal
