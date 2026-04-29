@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Diagnostics;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using ZemaxMCP.Core.Session;
 using ZOSAPI.Tools.Optimization;
@@ -27,7 +29,9 @@ public class OptimizeTool
     [Description("Run optimization on the current optical system")]
     public async Task<OptimizeResult> ExecuteAsync(
         [Description("Optimization algorithm: DLS or Orthogonal")] string algorithm = "DLS",
-        [Description("Number of cycles (0 for automatic)")] int cycles = 0)
+        [Description("Number of cycles (0 for automatic)")] int cycles = 0,
+        IProgress<ProgressNotificationValue>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -76,21 +80,75 @@ public class OptimizeTool
                     // Get the actual cycle count for reporting
                     int expectedCycles = GetExpectedCycleCount(cycles);
 
-                    // Run optimization
-                    optimizer.RunAndWaitForCompletion();
+                    // Run optimization non-blocking, then poll for completion.
+                    var stopwatch = Stopwatch.StartNew();
+                    optimizer.Run();
+
+                    string terminationReason = "Completed";
+                    long lastProgressMs = 0;
+                    const long progressIntervalMs = 5000;
+                    bool completed = false;
+
+                    while (!completed)
+                    {
+                        Thread.Sleep(1000);
+                        long now = stopwatch.ElapsedMilliseconds;
+
+                        // Emit progress every 5s; SDK is a no-op when client did
+                        // not provide a progressToken.
+                        if (now - lastProgressMs >= progressIntervalMs)
+                        {
+                            double currentMerit = 0;
+                            try { currentMerit = optimizer.CurrentMeritFunction; } catch { }
+                            progress?.Report(new ProgressNotificationValue
+                            {
+                                Progress = (float)stopwatch.Elapsed.TotalSeconds,
+                                Total = null, // total runtime unknown for local optimize
+                                Message = $"optimize running for {(int)stopwatch.Elapsed.TotalSeconds}s, " +
+                                          $"current merit: {currentMerit:F6}"
+                            });
+                            lastProgressMs = now;
+                        }
+
+                        // Honor client-side cancellation.
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            terminationReason = "Cancelled";
+                            optimizer.Cancel();
+                            optimizer.WaitForCompletion();
+                            completed = true;
+                            break;
+                        }
+
+                        // Check natural completion via IsRunning; if property doesn't
+                        // exist on this ZOSAPI version, the catch keeps polling.
+                        try
+                        {
+                            if (!optimizer.IsRunning)
+                            {
+                                terminationReason = "Completed";
+                                completed = true;
+                                break;
+                            }
+                        }
+                        catch { /* keep polling */ }
+                    }
+                    stopwatch.Stop();
 
                     // Calculate final merit
                     var finalMerit = mfe.CalculateMeritFunction();
 
-                    // Determine termination reason based on improvement
-                    string terminationReason = "Completed";
-                    if (Math.Abs(finalMerit - initialMerit) < 1e-10)
+                    // Refine termination reason based on improvement
+                    if (terminationReason == "Completed")
                     {
-                        terminationReason = "No improvement (possibly converged or no variables)";
-                    }
-                    else if (finalMerit < initialMerit)
-                    {
-                        terminationReason = "Converged";
+                        if (Math.Abs(finalMerit - initialMerit) < 1e-10)
+                        {
+                            terminationReason = "No improvement (possibly converged or no variables)";
+                        }
+                        else if (finalMerit < initialMerit)
+                        {
+                            terminationReason = "Converged";
+                        }
                     }
 
                     return new OptimizeResult(
@@ -108,7 +166,7 @@ public class OptimizeTool
                 {
                     optimizer.Close();
                 }
-            });
+            }, cancellationToken);
 
             return result;
         }

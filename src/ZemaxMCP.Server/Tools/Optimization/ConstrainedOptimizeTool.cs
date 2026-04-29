@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Diagnostics;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using ZemaxMCP.Core.Services.ConstrainedOptimization;
 using ZemaxMCP.Core.Session;
@@ -34,7 +36,9 @@ public class ConstrainedOptimizeTool
         [Description("Initial damping parameter mu (default 1e-3)")] double initialMu = 1e-3,
         [Description("Finite difference step size delta (default 1e-7)")] double delta = 1e-7,
         [Description("Use Broyden rank-1 Jacobian updates to reduce evaluations (default true)")] bool useBroydenUpdate = true,
-        [Description("Maximum auto-restarts with fresh Jacobian when Broyden converges early (default 2)")] int maxRestarts = 2)
+        [Description("Maximum auto-restarts with fresh Jacobian when Broyden converges early (default 2)")] int maxRestarts = 2,
+        IProgress<ProgressNotificationValue>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -56,9 +60,32 @@ public class ConstrainedOptimizeTool
                 var variables = scanner.ScanVariables(system);
                 _constraintStore.ApplyConstraints(variables);
 
+                // Use a single-element array so the lambda can mutate lastProgressMs.
+                long[] lastProgressMs = { 0 };
+                const long progressIntervalMs = 5000;
+                var swProgress = Stopwatch.StartNew();
+
+                Action<int, double, double, double> onProgress = (iter, merit, mu, runtimeSec) =>
+                {
+                    long now = swProgress.ElapsedMilliseconds;
+                    if (now - lastProgressMs[0] >= progressIntervalMs)
+                    {
+                        progress?.Report(new ProgressNotificationValue
+                        {
+                            Progress = (float)iter,
+                            Total = (float)maxIterations,
+                            Message = $"constrained_optimize iter {iter}/{maxIterations}, " +
+                                      $"merit: {merit:F6}, mu: {mu:F3}, runtime: {(int)runtimeSec}s"
+                        });
+                        lastProgressMs[0] = now;
+                    }
+                };
+
                 var lmResult = lmOptimizer.Optimize(
                     system, variables, maxIterations, initialMu, delta,
-                    useBroydenUpdate: useBroydenUpdate, maxRestarts: maxRestarts);
+                    useBroydenUpdate: useBroydenUpdate, maxRestarts: maxRestarts,
+                    onProgress: onProgress,
+                    cancellationToken: cancellationToken);
 
                 return new ConstrainedOptimizeResult(
                     Success: lmResult.Success,
@@ -69,7 +96,7 @@ public class ConstrainedOptimizeTool
                     Restarts: lmResult.Restarts,
                     Message: lmResult.Message
                 );
-            });
+            }, cancellationToken);
 
             return result;
         }

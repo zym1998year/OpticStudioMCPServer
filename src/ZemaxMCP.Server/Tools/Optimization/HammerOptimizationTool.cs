@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using ZOSAPI.Tools.Optimization;
 using ZemaxMCP.Core.Session;
@@ -33,7 +34,9 @@ public class HammerOptimizationTool
         [Description("Number of CPU cores to use (0 for all available)")] int cores = 0,
         [Description("Target runtime in minutes (for automatic mode)")] double targetRuntimeMinutes = 5.0,
         [Description("Maximum runtime in seconds (timeout)")] double timeoutSeconds = 120,
-        [Description("Use automatic optimization mode (true) or fixed cycles (false)")] bool automatic = true)
+        [Description("Use automatic optimization mode (true) or fixed cycles (false)")] bool automatic = true,
+        IProgress<ProgressNotificationValue>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -98,6 +101,8 @@ public class HammerOptimizationTool
 
                     double bestMerit = double.MaxValue;
                     long lastImprovedMs = 0;
+                    long lastProgressMs = 0;
+                    const long progressIntervalMs = 5000;
                     long timeoutMs = (long)(timeoutSeconds * 1000);
                     long totalRuntimeMs = (long)(targetRuntimeMinutes * 60 * 1000);
                     int improvements = 0;
@@ -117,6 +122,27 @@ public class HammerOptimizationTool
                                     improvements++;
                                 bestMerit = currentMerit;
                                 lastImprovedMs = now;
+                            }
+
+                            // Emit progress every 5s; SDK is a no-op when client did
+                            // not provide a progressToken.
+                            if (now - lastProgressMs >= progressIntervalMs)
+                            {
+                                progress?.Report(new ProgressNotificationValue
+                                {
+                                    Progress = (float)stopwatch.Elapsed.TotalSeconds,
+                                    Total = (float)(targetRuntimeMinutes * 60),
+                                    Message = $"hammer running for {(int)stopwatch.Elapsed.TotalSeconds}s, " +
+                                              $"best merit: {bestMerit:F6}, improvements: {improvements}"
+                                });
+                                lastProgressMs = now;
+                            }
+
+                            // Honor client-side cancellation.
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                terminationReason = "Cancelled";
+                                break;
                             }
 
                             long idleMs = now - lastImprovedMs;
@@ -164,7 +190,7 @@ public class HammerOptimizationTool
                 {
                     hammer.Close();
                 }
-            });
+            }, cancellationToken);
 
             return result;
         }

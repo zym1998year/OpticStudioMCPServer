@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MathNet.Numerics.LinearAlgebra;
 using ZemaxMCP.Core.Models;
 using ZOSAPI;
@@ -24,7 +25,9 @@ public class LMOptimizer
         double functionTolerance = 1e-10,
         bool useBroydenUpdate = false,
         int maxRestarts = 0,
-        Action<int, int, double>? onIterationProgress = null)
+        Action<int, int, double>? onIterationProgress = null,
+        Action<int, double, double, double>? onProgress = null,
+        CancellationToken cancellationToken = default)
     {
         var result = new OptimizationResult();
         double[]? x = null;
@@ -34,6 +37,8 @@ public class LMOptimizer
         double cost = 0;
         List<MeritRow>? meritRows = null;
         int effectiveMaxRestarts = useBroydenUpdate ? maxRestarts : 0;
+
+        var progressStopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -233,6 +238,12 @@ public class LMOptimizer
                         }
                     }
 
+                    // Report per-iteration progress and honor cancellation.
+                    double currentIterMerit = meritRows != null && SumWeights(meritRows) > 0
+                        ? Math.Sqrt(cost / SumWeights(meritRows)) : 0;
+                    onProgress?.Invoke(iterations, currentIterMerit, mu, progressStopwatch.Elapsed.TotalSeconds);
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     if (!stepAccepted || exitedEarly)
                     {
                         exitedEarly = true;
@@ -257,7 +268,10 @@ public class LMOptimizer
             }
             system.MFE.CalculateMeritFunction();
 
-            double finalMerit = Math.Sqrt(cost / SumWeights(meritRows));
+            // meritRows is non-null here: assigned at line 67 in the success path,
+            // and the only later assignment (line 210) is also non-null. The compiler
+            // can't prove this due to the new Phase 2 conditional read on line 242.
+            double finalMerit = Math.Sqrt(cost / SumWeights(meritRows!));
             result.FinalMerit = finalMerit;
             result.Iterations = iterations;
             result.Success = true;

@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Diagnostics;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using ZOSAPI.Tools.Optimization;
 using ZemaxMCP.Core.Session;
@@ -35,7 +37,9 @@ public class GlobalSearchTool
         [Description("Optimization algorithm: DLS or Orthogonal")] string algorithm = "DLS",
         [Description("Number of CPU cores to use (0 for all available)")] int cores = 0,
         [Description("Number of solutions to save: 10, 20, 50, or 100")] int solutionsToSave = 10,
-        [Description("Maximum runtime in seconds (0 for no limit - will run until cancelled)")] double timeoutSeconds = 60)
+        [Description("Maximum runtime in seconds (0 for no limit - will run until cancelled)")] double timeoutSeconds = 60,
+        IProgress<ProgressNotificationValue>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -97,20 +101,75 @@ public class GlobalSearchTool
                         _ => OptimizationSaveCount.Save_100
                     };
 
-                    string terminationReason;
-                    double actualRuntime = timeoutSeconds;
+                    string terminationReason = "Completed";
+                    var stopwatch = Stopwatch.StartNew();
+                    long timeoutMs = (long)(timeoutSeconds * 1000);
+                    long lastProgressMs = 0;
+                    const long progressIntervalMs = 5000;
+                    bool completed = false;
 
-                    if (timeoutSeconds > 0)
+                    // Start GlobalSearch non-blocking via Run() (returns immediately;
+                    // optimization runs in Zemax's background thread). We poll for
+                    // completion or external cancellation.
+                    globalOpt.Run();
+
+                    while (!completed)
                     {
-                        var runStatus = globalOpt.RunAndWaitWithTimeout(timeoutSeconds);
-                        terminationReason = runStatus.ToString();
+                        Thread.Sleep(1000);
+                        long now = stopwatch.ElapsedMilliseconds;
+
+                        // Emit progress every 5s; SDK is a no-op when client did
+                        // not provide a progressToken.
+                        if (now - lastProgressMs >= progressIntervalMs)
+                        {
+                            double bestMeritSoFar = 0;
+                            try { bestMeritSoFar = globalOpt.CurrentMeritFunction(1); } catch { }
+                            progress?.Report(new ProgressNotificationValue
+                            {
+                                Progress = (float)stopwatch.Elapsed.TotalSeconds,
+                                Total = timeoutSeconds > 0 ? (float)timeoutSeconds : null,
+                                Message = $"global_search running for {(int)stopwatch.Elapsed.TotalSeconds}s, " +
+                                          $"best merit so far: {bestMeritSoFar:F6}"
+                            });
+                            lastProgressMs = now;
+                        }
+
+                        // Honor client-side cancellation.
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            terminationReason = "Cancelled";
+                            globalOpt.Cancel();
+                            globalOpt.WaitForCompletion();
+                            completed = true;
+                            break;
+                        }
+
+                        // Timeout check (mimic RunAndWaitWithTimeout behavior).
+                        if (timeoutSeconds > 0 && now >= timeoutMs)
+                        {
+                            terminationReason = "Timeout";
+                            globalOpt.Cancel();
+                            globalOpt.WaitForCompletion();
+                            completed = true;
+                            break;
+                        }
+
+                        // Check natural completion via IsRunning; if property doesn't
+                        // exist on this ZOSAPI version, the catch keeps polling.
+                        try
+                        {
+                            if (!globalOpt.IsRunning)
+                            {
+                                terminationReason = "Completed";
+                                completed = true;
+                                break;
+                            }
+                        }
+                        catch { /* keep polling */ }
                     }
-                    else
-                    {
-                        // Run without timeout (automatic termination)
-                        globalOpt.RunAndWaitForCompletion();
-                        terminationReason = "Completed";
-                    }
+
+                    double actualRuntime = stopwatch.Elapsed.TotalSeconds;
+                    stopwatch.Stop();
 
                     // Get best merit function (solution 1 is the best)
                     var bestMerit = globalOpt.CurrentMeritFunction(1);
@@ -146,7 +205,7 @@ public class GlobalSearchTool
                 {
                     globalOpt.Close();
                 }
-            });
+            }, cancellationToken);
 
             return result;
         }
