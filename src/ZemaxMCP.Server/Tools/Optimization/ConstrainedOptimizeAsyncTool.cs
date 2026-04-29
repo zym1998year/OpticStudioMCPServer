@@ -101,7 +101,17 @@ zemax_constrained_optimize_stop to cancel.")]
                             stopwatch.Elapsed.TotalSeconds,
                             lmResult.Restarts);
 
-                        _state.SetCompleted(ct.IsCancellationRequested ? "Cancelled" : "Completed");
+                        // Preserve LM-internal failure message. ct.IsCancellationRequested
+                        // wins over lmResult.Success because the LM catches OperationCanceledException
+                        // and returns Success=false with a generic "Operation was canceled" message;
+                        // we want clearer semantics for the user.
+                        string termReason = ct.IsCancellationRequested
+                            ? "Cancelled"
+                            : (lmResult.Success ? "Completed" : "Error");
+                        string? error = (ct.IsCancellationRequested || lmResult.Success)
+                            ? null
+                            : lmResult.Message;
+                        _state.SetCompleted(termReason, error);
                     }, ct);
             }
             catch (OperationCanceledException)

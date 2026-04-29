@@ -36,7 +36,15 @@ ZemaxMCP 的优化类工具有 5 个长任务族（runtime 可达数分钟到几
 ## 已知限制
 - Server 进程崩溃后任务状态丢失（同 multistart 现状）
 - Cancel 不能立即停止 Zemax 内部正在跑的迭代；要等当前迭代完成
+  - `zemax_constrained_optimize` 取消延迟可达一次完整 LM 迭代（含 Jacobian
+    重计算 — 对变量数 N 而言为 N 次 finite-difference merit 评估），可能数十秒
+  - `zemax_hammer` / `zemax_global_search` / `zemax_optimize` 取消延迟由
+    Zemax `Cancel()+WaitForCompletion()` 决定，通常 1-3 秒
 - 同一类型 async 任务进程内只能跑 1 个（per-tool State 是 Singleton）
+- **Server 是单 Zemax 实例**：async 任务运行期间，**所有其他 zemax_* 工具调用
+  会阻塞**直到该 async 任务完成或取消（包括 zemax_get_system / zemax_save_file
+  等读写操作）。这是 ZemaxSession 内部的 SemaphoreSlim 串行化造成的。
+  status / stop 工具是例外，它们读写 State 单例不经 session lock。
 
 ## 设计文档
 `docs/superpowers/specs/2026-04-29-zemax-mcp-long-task-async-design.md`

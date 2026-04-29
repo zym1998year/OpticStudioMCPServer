@@ -2,7 +2,12 @@ namespace ZemaxMCP.Core.Services.ConstrainedOptimization;
 
 /// <summary>
 /// Persists Hammer optimization state between calls to support progress
-/// reporting and cancellation. Mirrors MultistartState design.
+/// reporting and cancellation. Lifecycle method shape mirrors MultistartState
+/// (Reset / SetRunning / UpdateMerit / SetCompleted / CreateCancellationToken /
+/// RequestCancellation), but <see cref="HasState"/> semantics differ:
+/// HasState here means "ran and reached a terminal state" (!IsRunning &&
+/// terminationReason set), whereas MultistartState.HasState tracks the
+/// "InitialLmDone" flag of its multi-phase lifecycle.
 /// </summary>
 public class HammerState
 {

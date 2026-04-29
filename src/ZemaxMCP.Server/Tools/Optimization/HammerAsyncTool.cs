@@ -31,7 +31,7 @@ of optimization length.")]
         [Description("Number of CPU cores to use (0 for all available)")] int cores = 0,
         [Description("Target runtime in minutes")] double targetRuntimeMinutes = 5.0,
         [Description("Stagnation timeout in seconds (no improvement)")] double timeoutSeconds = 120,
-        [Description("Use automatic optimization mode")] bool automatic = true)
+        [Description("Reserved (currently no-op). Hammer is always run in continuous mode; this parameter is preserved for future automatic-mode tuning.")] bool automatic = true)
     {
         if (_state.IsRunning)
         {

@@ -1,7 +1,12 @@
 namespace ZemaxMCP.Core.Services.ConstrainedOptimization;
 
 /// <summary>
-/// Persists Local Optimization (zemax_optimize) state. Mirrors MultistartState design.
+/// Persists Local Optimization (zemax_optimize) state. Lifecycle method shape
+/// mirrors MultistartState (Reset / SetRunning / UpdateProgress / SetCompleted /
+/// CreateCancellationToken / RequestCancellation), but <see cref="HasState"/>
+/// semantics differ: HasState here means "ran and reached a terminal state"
+/// (!IsRunning &amp;&amp; terminationReason set), whereas MultistartState.HasState
+/// tracks the "InitialLmDone" flag of its multi-phase lifecycle.
 /// </summary>
 public class OptimizeState
 {

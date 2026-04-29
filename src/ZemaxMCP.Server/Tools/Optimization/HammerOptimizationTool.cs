@@ -34,7 +34,7 @@ public class HammerOptimizationTool
         [Description("Number of CPU cores to use (0 for all available)")] int cores = 0,
         [Description("Target runtime in minutes (for automatic mode)")] double targetRuntimeMinutes = 5.0,
         [Description("Maximum runtime in seconds (timeout)")] double timeoutSeconds = 120,
-        [Description("Use automatic optimization mode (true) or fixed cycles (false)")] bool automatic = true,
+        [Description("Reserved (currently no-op). Hammer is always run in continuous mode; this parameter is preserved for future automatic-mode tuning.")] bool automatic = true,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {

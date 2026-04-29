@@ -1,7 +1,12 @@
 namespace ZemaxMCP.Core.Services.ConstrainedOptimization;
 
 /// <summary>
-/// Persists Global Search optimization state. Mirrors MultistartState design.
+/// Persists Global Search optimization state. Lifecycle method shape mirrors
+/// MultistartState (Reset / SetRunning / UpdateProgress / SetCompleted /
+/// CreateCancellationToken / RequestCancellation), but <see cref="HasState"/>
+/// semantics differ: HasState here means "ran and reached a terminal state"
+/// (!IsRunning &amp;&amp; terminationReason set), whereas MultistartState.HasState
+/// tracks the "InitialLmDone" flag of its multi-phase lifecycle.
 /// </summary>
 public class GlobalSearchState
 {
