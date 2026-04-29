@@ -110,6 +110,9 @@ try
     .WithTools<ZemaxMCP.Server.Tools.Optimization.MultistartOptimizeTool>()
     .WithTools<ZemaxMCP.Server.Tools.Optimization.MultistartStatusTool>()
     .WithTools<ZemaxMCP.Server.Tools.Optimization.MultistartStopTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.HammerAsyncTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.HammerStatusTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Optimization.HammerStopTool>()
     // Lens Data Tools
     .WithTools<ZemaxMCP.Server.Tools.LensData.GetSystemDataTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.GetSurfaceTool>()
