@@ -53,6 +53,10 @@ try
     builder.Services.AddSingleton<OperandSearchService>();
     builder.Services.AddSingleton<ConstraintStore>();
     builder.Services.AddSingleton<MultistartState>();
+    builder.Services.AddSingleton<HammerState>();
+    builder.Services.AddSingleton<GlobalSearchState>();
+    builder.Services.AddSingleton<OptimizeState>();
+    builder.Services.AddSingleton<ConstrainedOptimizeState>();
 
     // Add MCP server with stdio transport
     builder.Services.AddMcpServer(options =>
