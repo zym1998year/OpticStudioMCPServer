@@ -33,9 +33,11 @@ public class FftPsfTool
     [McpServerTool(Name = "zemax_fft_psf")]
     [Description(
         "Run FFT Point Spread Function analysis with full settings control. Returns the PSF grid "
-        + "(intensity or phase) and Strehl ratio. SampleSize controls input pupil sampling; "
+        + "(intensity or phase). SampleSize controls input pupil sampling; "
         + "OutputSize controls how much of the PSF is returned. Use Type to select Linear/Logarithmic/"
-        + "Phase output. ImageDelta sets the output pixel size in micrometers (0 = auto).")]
+        + "Phase output. ImageDelta sets the output pixel size in micrometers (0 = auto). "
+        + "Note: ZOSAPI does not expose a Strehl ratio for FFT PSF (this version), so StrehlRatio is "
+        + "always null here — use zemax_huygens_psf when you need the Strehl ratio.")]
     public async Task<FftPsfResult> ExecuteAsync(
         [Description("Wavelength number (1-indexed); 0 = primary")] int wavelength = 0,
         [Description("Field number (1-indexed)")] int field = 1,
@@ -95,7 +97,9 @@ public class FftPsfTool
 
                     var results = analysis.GetResults();
 
-                    // 文本输出:供 textPath 落盘 + 解析 Strehl / Field / Wavelength 表头
+                    // 文本输出:供 textPath 落盘 + 解析 Field / Wavelength 表头。
+                    // 注:本版 ZOSAPI 的 FFT PSF 文本/HeaderData/MetaData 均不含 Strehl,故此处
+                    // strehl 恒为 null(经探针实测);需要 Strehl 用 zemax_huygens_psf。
                     string tmpTxt = textPath ?? Path.Combine(
                         Path.GetTempPath(), $"zemax_fft_psf_{Guid.NewGuid():N}.txt");
                     double? strehl = null; string? fieldLabel = null, waveLabel = null;
