@@ -25,5 +25,7 @@ $projects = "ZemaxMCP.Server", "ZemaxMCP.HttpBridge", "ZemaxMCP.Launcher", "Zema
 foreach ($project in $projects) {
   Copy-Item "$root\src\$project\bin\$Configuration\net48\*" $publish -Recurse -Force
 }
+Copy-Item "$root\installer\Portable-Install.cmd" "$publish\Portable-Install.cmd" -Force
+Copy-Item "$root\installer\Start-Zemax-MCP.cmd" "$publish\Start-Zemax-MCP.cmd" -Force
 Compress-Archive "$publish\*" "$root\artifacts\ZemaxMCP-win-x64.zip" -Force
 Write-Host "Release package: $root\artifacts\ZemaxMCP-win-x64.zip"
