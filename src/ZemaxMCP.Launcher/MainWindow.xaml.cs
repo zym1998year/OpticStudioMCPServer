@@ -28,7 +28,9 @@ public partial class MainWindow : Window
         var savedRoot = ReadSetting("zemaxRoot");
         ZemaxVersions.SelectedItem = installs.FirstOrDefault(x => x.Root.Equals(savedRoot, StringComparison.OrdinalIgnoreCase));
         if (ZemaxVersions.SelectedItem == null) ZemaxVersions.SelectedIndex = installs.Count > 0 ? 0 : -1;
-        Report(installs.Count == 0 ? "No OpticStudio installation detected. Install OpticStudio or select a supported installation before starting." : "Starting local MCP endpoint automatically…");
+        Report(installs.Count == 0
+            ? "No local OpticStudio installation detected. To use this computer as an AI client, paste the MCP address from the OpticStudio computer, then click Test MCP connection and Configure installed AI clients."
+            : "Starting local MCP endpoint automatically…");
         RefreshEndpoint();
         if (installs.Count > 0) StartBridge();
     }
@@ -229,10 +231,31 @@ public sealed class ZemaxInstallation
     public string DisplayName { get; set; } = "";
     public static List<ZemaxInstallation> FindAll()
     {
-        var roots = new[] { Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) }
-            .Where(Directory.Exists).SelectMany(p => Directory.GetDirectories(p, "*Zemax OpticStudio*"));
+        var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var programFiles in new[] { Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) }.Where(Directory.Exists))
+        {
+            try { foreach (var folder in Directory.GetDirectories(programFiles, "*Zemax*")) roots.Add(folder); }
+            catch (UnauthorizedAccessException) { }
+        }
+        foreach (var keyPath in new[] { @"SOFTWARE\Zemax", @"SOFTWARE\WOW6432Node\Zemax" })
+        {
+            try { CollectRegistryFolders(Registry.LocalMachine.OpenSubKey(keyPath), roots); }
+            catch { }
+        }
+        try { CollectRegistryFolders(Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Zemax"), roots); }
+        catch { }
         return roots.Where(p => File.Exists(Path.Combine(p, "ZOSAPI.dll")) && File.Exists(Path.Combine(p, "ZOSAPI_NetHelper.dll")))
             .Select(p => new ZemaxInstallation { Root = p, DisplayName = Path.GetFileName(p) + " — " + p }).OrderByDescending(x => x.DisplayName).ToList();
+    }
+    private static void CollectRegistryFolders(RegistryKey? key, ISet<string> roots)
+    {
+        if (key == null) return;
+        using (key)
+        {
+            foreach (var name in key.GetValueNames())
+                if (key.GetValue(name) is string value && Directory.Exists(value)) roots.Add(value);
+            foreach (var subKeyName in key.GetSubKeyNames()) CollectRegistryFolders(key.OpenSubKey(subKeyName), roots);
+        }
     }
 }
 
