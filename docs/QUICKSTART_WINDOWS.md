@@ -2,7 +2,7 @@
 
 1. Download and extract `ZemaxMCP-win-x64.zip` on the computer that has OpticStudio installed.
 2. Double-click **Install.exe**. It installs into your user profile, creates a **Start Zemax MCP** desktop shortcut, and starts the service. No command line or administrator permission is needed for a local connection.
-3. On later use, double-click **Start-Zemax-MCP.exe** (or the desktop shortcut). When a single OpticStudio version is installed, it is detected and the local endpoint starts automatically.
+3. On later use, double-click **Start-Zemax-MCP.exe** (or the desktop shortcut). The newest detected OpticStudio version is selected and the local endpoint starts automatically; the window lets you switch versions if needed. A second launch simply shows that the app is already running.
 4. Click Codex, Claude, or Cursor in the small status window to add a `zemax-mcp` entry automatically.
 
 For a second PC, tick **Share with a trusted LAN computer**, then use the displayed LAN endpoint in the client configuration. If Windows Firewall asks, allow the selected port only for the trusted private network. Do not expose an unauthenticated MCP endpoint to the public internet.

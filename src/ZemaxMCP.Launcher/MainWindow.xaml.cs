@@ -24,7 +24,7 @@ public partial class MainWindow : Window
         ZemaxVersions.SelectedIndex = installs.Count > 0 ? 0 : -1;
         Report(installs.Count == 0 ? "No OpticStudio installation detected. Install OpticStudio or select a supported installation before starting." : "Starting local MCP endpoint automatically…");
         RefreshEndpoint();
-        if (installs.Count == 1) StartBridge();
+        if (installs.Count > 0) StartBridge();
     }
     private void ZemaxVersions_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => RefreshEndpoint();
     private string HostName => ShareOnLan.IsChecked == true ? "0.0.0.0" : "127.0.0.1";
