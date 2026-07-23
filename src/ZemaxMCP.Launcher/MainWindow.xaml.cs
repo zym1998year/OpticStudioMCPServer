@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using Newtonsoft.Json.Linq;
 
@@ -73,6 +74,32 @@ public partial class MainWindow : Window
         _bridge = null;
     }
     private void CopyEndpoint_Click(object sender, RoutedEventArgs e) { Clipboard.SetText(McpUrl); Report("MCP address copied: " + McpUrl); }
+    private async void TestMcp_Click(object sender, RoutedEventArgs e)
+    {
+        var endpoint = McpUrl;
+        Report("Testing MCP handshake: " + endpoint + "…");
+        try { Report(await Task.Run(() => TestMcp(endpoint))); }
+        catch (Exception ex) { Report("MCP connection failed: " + ex.Message + Environment.NewLine + "On the OpticStudio computer, keep Start-Zemax-MCP open, start the bridge, then enable Share with a trusted LAN computer."); }
+    }
+    private static string TestMcp(string endpoint)
+    {
+        var request = (HttpWebRequest)WebRequest.Create(endpoint);
+        request.Method = "POST";
+        request.ContentType = "application/json";
+        request.Accept = "application/json, text/event-stream";
+        request.Timeout = 10000;
+        var payload = "{\"jsonrpc\":\"2.0\",\"id\":\"zemax-mcp-healthcheck\",\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"zemax-mcp-launcher\",\"version\":\"1.0\"}}}";
+        var bytes = Encoding.UTF8.GetBytes(payload);
+        using (var stream = request.GetRequestStream()) stream.Write(bytes, 0, bytes.Length);
+        using (var response = (HttpWebResponse)request.GetResponse())
+        using (var reader = new StreamReader(response.GetResponseStream()))
+        {
+            var result = JObject.Parse(reader.ReadToEnd());
+            var name = result["result"]?["serverInfo"]?["name"]?.ToString();
+            if (response.StatusCode != HttpStatusCode.OK || string.IsNullOrWhiteSpace(name)) throw new InvalidOperationException("the endpoint did not return an MCP initialize response.");
+            return "MCP connection succeeded: " + name + " responded at " + endpoint;
+        }
+    }
     private void OpenLogs_Click(object sender, RoutedEventArgs e)
     {
         var logs = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
