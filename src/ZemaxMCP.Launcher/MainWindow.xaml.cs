@@ -31,6 +31,8 @@ public partial class MainWindow : Window
     private void RefreshEndpoint() => Endpoint.Text = "MCP endpoint: " + Url;
     private ZemaxInstallation? Installation => ZemaxVersions.SelectedItem as ZemaxInstallation;
     private string Url => "http://" + (ShareOnLan.IsChecked == true ? GetLanAddress() : "127.0.0.1") + ":" + Port.Text + "/mcp";
+    private string McpUrl => Uri.TryCreate(RemoteEndpoint.Text, UriKind.Absolute, out var remote) &&
+        (remote.Scheme == Uri.UriSchemeHttp || remote.Scheme == Uri.UriSchemeHttps) ? remote.ToString().TrimEnd('/') : Url;
 
     private void ShareOnLan_Changed(object sender, RoutedEventArgs e) { RefreshEndpoint(); StopBridge(); if (Installation != null) StartBridge(); }
 
@@ -49,19 +51,19 @@ public partial class MainWindow : Window
     }
     private void Stop_Click(object sender, RoutedEventArgs e) { StopBridge(); Report("HTTP MCP stopped."); }
     private void StopBridge() { try { if (_bridge != null && !_bridge.HasExited) _bridge.Kill(); } catch { } _bridge = null; }
-    private void CopyEndpoint_Click(object sender, RoutedEventArgs e) { Clipboard.SetText(Url); Report("MCP address copied: " + Url); }
+    private void CopyEndpoint_Click(object sender, RoutedEventArgs e) { Clipboard.SetText(McpUrl); Report("MCP address copied: " + McpUrl); }
     private void ConfigureDetected_Click(object sender, RoutedEventArgs e)
     {
         var configured = new List<string>();
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        if (Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".codex"))) { Configurator.ConfigureCodex(Url); configured.Add("Codex"); }
-        if (Directory.Exists(Path.Combine(appData, "Claude"))) { Configurator.ConfigureJson(Path.Combine(appData, "Claude", "claude_desktop_config.json"), "mcpServers", Url); configured.Add("Claude Desktop"); }
-        if (Directory.Exists(Path.Combine(appData, "Cursor"))) { Configurator.ConfigureJson(Path.Combine(appData, "Cursor", "User", "mcp.json"), "mcpServers", Url); configured.Add("Cursor"); }
+        if (Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".codex"))) { Configurator.ConfigureCodex(McpUrl); configured.Add("Codex"); }
+        if (Directory.Exists(Path.Combine(appData, "Claude"))) { Configurator.ConfigureJson(Path.Combine(appData, "Claude", "claude_desktop_config.json"), "mcpServers", McpUrl); configured.Add("Claude Desktop"); }
+        if (Directory.Exists(Path.Combine(appData, "Cursor"))) { Configurator.ConfigureJson(Path.Combine(appData, "Cursor", "User", "mcp.json"), "mcpServers", McpUrl); configured.Add("Cursor"); }
         Report(configured.Count == 0 ? "No supported AI client was detected. Use the individual configuration buttons after installing one." : "Configured: " + string.Join(", ", configured) + ". Restart the client to connect.");
     }
-    private void Codex_Click(object sender, RoutedEventArgs e) { Configurator.ConfigureCodex(Url); Report("Codex configured for " + Url); }
-    private void Claude_Click(object sender, RoutedEventArgs e) { Configurator.ConfigureJson(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Claude", "claude_desktop_config.json"), "mcpServers", Url); Report("Claude Desktop configured for " + Url); }
-    private void Cursor_Click(object sender, RoutedEventArgs e) { Configurator.ConfigureJson(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Cursor", "User", "mcp.json"), "mcpServers", Url); Report("Cursor configured for " + Url); }
+    private void Codex_Click(object sender, RoutedEventArgs e) { Configurator.ConfigureCodex(McpUrl); Report("Codex configured for " + McpUrl); }
+    private void Claude_Click(object sender, RoutedEventArgs e) { Configurator.ConfigureJson(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Claude", "claude_desktop_config.json"), "mcpServers", McpUrl); Report("Claude Desktop configured for " + McpUrl); }
+    private void Cursor_Click(object sender, RoutedEventArgs e) { Configurator.ConfigureJson(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Cursor", "User", "mcp.json"), "mcpServers", McpUrl); Report("Cursor configured for " + McpUrl); }
     private void Update_Click(object sender, RoutedEventArgs e)
     {
         try

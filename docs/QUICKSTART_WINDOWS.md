@@ -7,6 +7,8 @@
 
 For a second PC, tick **Share with a trusted LAN computer**, then use the displayed LAN endpoint in the client configuration. If Windows Firewall asks, allow the selected port only for the trusted private network. Do not expose an unauthenticated MCP endpoint to the public internet.
 
+On the AI-client computer, extract the same release, double-click `Install.exe`, paste the endpoint copied from the OpticStudio computer into **Remote MCP URL**, then click **Configure installed AI clients**. This is the only extra step for a two-computer setup and requires no terminal or manual file editing.
+
 ## Updates and logs
 
 The launcher downloads and applies the current signed-off GitHub release with **Check updates**, then restarts itself. Releases are built automatically from version tags and include the server, HTTP bridge, launcher, and a rolling `logs` folder. Your OpticStudio installation and client configuration are retained.
