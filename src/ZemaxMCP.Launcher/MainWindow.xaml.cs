@@ -102,12 +102,13 @@ public partial class MainWindow : Window
     private async Task RefreshStatusAsync()
     {
         var root = Installation?.Root;
+        var endpoint = McpUrl;
         var apiFiles = root != null && new[] { "ZOSAPI.dll", "ZOSAPI_Interfaces.dll", "ZOSAPI_NetHelper.dll" }.All(x => File.Exists(Path.Combine(root, x)));
         var localBridge = _bridge != null && !_bridge.HasExited;
-        ConnectionSummary.Text = "Checking " + McpUrl + "…";
+        ConnectionSummary.Text = "Checking " + endpoint + "…";
         try
         {
-            var health = await Task.Run(() => GetHealth(McpUrl));
+            var health = await Task.Run(() => GetHealth(endpoint));
             var lastRequest = health["lastRequestAt"]?.ToString();
             var apiLoaded = health["zosApiLoaded"]?.Value<bool>() == true;
             var apiConnected = health["zosApiConnected"]?.Value<bool>() == true;
