@@ -90,7 +90,10 @@ internal sealed class StdioMcpBridge : IDisposable
     {
         StartServer();
         _listener = new HttpListener();
-        _listener.Prefixes.Add($"http://{_options.Host}:{_options.Port}{_options.Path}");
+        // HTTP.SYS uses '+' as the all-interface prefix.  The launcher creates
+        // its URL ACL only when the user explicitly enables LAN sharing.
+        var listenerHost = _options.Host == "0.0.0.0" ? "+" : _options.Host;
+        _listener.Prefixes.Add($"http://{listenerHost}:{_options.Port}{_options.Path}");
         _listener.Start();
         Log.Information("Zemax MCP HTTP endpoint listening at {Url}", _listener.Prefixes.FirstOrDefault());
 

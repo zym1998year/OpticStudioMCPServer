@@ -90,8 +90,13 @@ internal static class FirewallRule
         try
         {
             var rule = "Zemax MCP HTTP " + port;
-            var arguments = "advfirewall firewall add rule name=\"" + rule + "\" dir=in action=allow protocol=TCP localport=" + port + " profile=private";
-            using (var process = Process.Start(new ProcessStartInfo("netsh.exe", arguments) { Verb = "runas", UseShellExecute = true }))
+            var user = Environment.UserDomainName + "\\" + Environment.UserName;
+            var firewall = "netsh advfirewall firewall add rule name=\"" + rule + "\" dir=in action=allow protocol=TCP localport=" + port + " profile=private";
+            var urlAcl = "netsh http add urlacl url=http://+:" + port + "/mcp/ user=\"" + user + "\"";
+            // cmd.exe lets one UAC confirmation configure both HTTP.SYS and the
+            // private-network firewall rule. Existing URL ACLs are harmless.
+            var arguments = "/c \"" + firewall + " & " + urlAcl + " & exit /b 0\"";
+            using (var process = Process.Start(new ProcessStartInfo("cmd.exe", arguments) { Verb = "runas", UseShellExecute = true }))
             {
                 process.WaitForExit();
                 return process.ExitCode == 0;
