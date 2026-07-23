@@ -113,6 +113,8 @@ try
     .WithTools<ZemaxMCP.Server.Tools.Analysis.ExportAnalysisTool>()
     .WithTools<ZemaxMCP.Server.Tools.Analysis.GeometricImageAnalysisTool>()
     .WithTools<ZemaxMCP.Server.Tools.Analysis.PopTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Analysis.RayTraceExtendedTool>()
+    .WithTools<ZemaxMCP.Server.Tools.Analysis.ApertureThroughputTool>()
     .WithTools<ZemaxMCP.Server.Tools.Analysis.FftPsfTool>()
     .WithTools<ZemaxMCP.Server.Tools.Analysis.HuygensPsfTool>()
     // Optimization Tools
@@ -152,6 +154,9 @@ try
     .WithTools<ZemaxMCP.Server.Tools.LensData.ListSurfaceTypesTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.GetExtraDataTool>()
     .WithTools<ZemaxMCP.Server.Tools.LensData.SetExtraDataTool>()
+    .WithTools<ZemaxMCP.Server.Tools.LensData.SurfaceApertureTool>()
+    .WithTools<ZemaxMCP.Server.Tools.LensData.OffAxisConicFreeformTool>()
+    .WithTools<ZemaxMCP.Server.Tools.LensData.GetGlobalMatrixTool>()
     // Configuration Tools
     .WithTools<ZemaxMCP.Server.Tools.Configuration.GetConfigurationTool>()
     .WithTools<ZemaxMCP.Server.Tools.Configuration.SetNumberOfConfigurationsTool>()
