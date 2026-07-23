@@ -10,5 +10,9 @@
     <PackageReference Include="Serilog.Sinks.File" />
     <!-- Keep the release folder ABI-compatible with the net48 MCP server. -->
     <PackageReference Include="System.Diagnostics.DiagnosticSource" />
+    <PackageReference Include="System.Buffers" />
+    <PackageReference Include="System.Memory" />
+    <PackageReference Include="System.Numerics.Vectors" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
   </ItemGroup>
 </Project>
