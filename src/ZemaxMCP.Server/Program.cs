@@ -33,6 +33,8 @@ var initialized = string.IsNullOrWhiteSpace(zemaxRoot)
     ? ZOSAPI_NetHelper.ZOSAPI_Initializer.Initialize()
     : ZOSAPI_NetHelper.ZOSAPI_Initializer.Initialize(zemaxRoot);
 
+if (initialized) Console.Error.WriteLine("ZEMAX_MCP_STATUS:ZOS_API_LOADED");
+
 if (!initialized)
 {
     throw new InvalidOperationException(

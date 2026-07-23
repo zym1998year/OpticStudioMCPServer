@@ -141,6 +141,7 @@ public class ZemaxSession : IZemaxSession
             }
 
             _logger.LogInformation("Successfully connected to OpticStudio in {Mode} mode", mode);
+            Console.Error.WriteLine("ZEMAX_MCP_STATUS:ZOS_API_CONNECTED");
             _commandLog.LogResult("Connect", true, $"Connected in {mode} mode", sw.ElapsedMilliseconds);
             return true;
         }

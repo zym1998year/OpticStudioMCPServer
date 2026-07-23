@@ -98,6 +98,45 @@ public partial class MainWindow : Window
             (firewallReady ? "" : Environment.NewLine + "Firewall permission was not granted; another PC may not reach this endpoint."));
     }
     private void Stop_Click(object sender, RoutedEventArgs e) { StopBridge(); Report("HTTP MCP stopped."); }
+    private async void RefreshStatus_Click(object sender, RoutedEventArgs e) => await RefreshStatusAsync();
+    private async Task RefreshStatusAsync()
+    {
+        var root = Installation?.Root;
+        var apiFiles = root != null && new[] { "ZOSAPI.dll", "ZOSAPI_Interfaces.dll", "ZOSAPI_NetHelper.dll" }.All(x => File.Exists(Path.Combine(root, x)));
+        var localBridge = _bridge != null && !_bridge.HasExited;
+        ConnectionSummary.Text = "Checking " + McpUrl + "…";
+        try
+        {
+            var health = await Task.Run(() => GetHealth(McpUrl));
+            var lastRequest = health["lastRequestAt"]?.ToString();
+            var apiLoaded = health["zosApiLoaded"]?.Value<bool>() == true;
+            var apiConnected = health["zosApiConnected"]?.Value<bool>() == true;
+            ConnectionSummary.Text = "MCP endpoint: reachable\n" +
+                "Bridge: " + (health["bridgeRunning"]?.Value<bool>() == true ? "running" : "not running") +
+                "; MCP server: " + (health["mcpServerRunning"]?.Value<bool>() == true ? "running" : "not running") + "\n" +
+                "ZOS-API files: " + (apiFiles ? "found" : root == null ? "remote endpoint" : "missing") +
+                "; loaded: " + (apiLoaded ? "yes" : "not yet") +
+                "; OpticStudio connected: " + (apiConnected ? "yes" : "not yet") + "\n" +
+                "Last MCP client: " + (health["lastClient"]?.ToString() ?? "unknown") +
+                "; last request: " + (string.IsNullOrWhiteSpace(lastRequest) ? "none" : lastRequest) +
+                (localBridge ? "\nLocal launcher bridge process: running" : "");
+        }
+        catch (Exception ex)
+        {
+            ConnectionSummary.Text = "MCP endpoint: not reachable\n" +
+                "ZOS-API files: " + (apiFiles ? "found" : root == null ? "remote endpoint" : "missing") +
+                (localBridge ? "\nLocal launcher bridge process is running, but the HTTP health check failed: " + ex.Message : "\n" + ex.Message);
+        }
+    }
+    private static JObject GetHealth(string endpoint)
+    {
+        var request = (HttpWebRequest)WebRequest.Create(endpoint.TrimEnd('/') + "/health");
+        request.Method = "GET";
+        request.Timeout = 5000;
+        using var response = (HttpWebResponse)request.GetResponse();
+        using var reader = new StreamReader(response.GetResponseStream());
+        return JObject.Parse(reader.ReadToEnd());
+    }
     private void Exit_Click(object sender, RoutedEventArgs e) => ExitApplication();
     private void ExitApplication()
     {
@@ -139,6 +178,7 @@ public partial class MainWindow : Window
         Report("Testing MCP handshake: " + endpoint + "…");
         try { Report(await Task.Run(() => TestMcp(endpoint))); }
         catch (Exception ex) { Report("MCP connection failed: " + ex.Message + Environment.NewLine + "On the OpticStudio computer, keep Start-Zemax-MCP open, start the bridge, then enable Share with a trusted LAN computer."); }
+        await RefreshStatusAsync();
     }
     private static string TestMcp(string endpoint)
     {
