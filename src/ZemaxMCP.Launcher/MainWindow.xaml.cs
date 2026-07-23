@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     private Process? _bridge;
     private bool _stoppingBridge;
     private bool _exitRequested;
+    private bool _clientSetupPrompted;
     private readonly Forms.NotifyIcon _trayIcon;
     public MainWindow()
     {
@@ -46,6 +47,7 @@ public partial class MainWindow : Window
             : "Starting local MCP endpoint automatically…");
         RefreshEndpoint();
         if (installs.Count > 0) StartBridge();
+        OfferFirstRunClientSetup();
     }
     private void ZemaxVersions_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) { RefreshEndpoint(); SaveSettings(); }
     private string HostName => ShareOnLan.IsChecked == true ? "0.0.0.0" : "127.0.0.1";
@@ -208,12 +210,38 @@ public partial class MainWindow : Window
     }
     private void ConfigureDetected_Click(object sender, RoutedEventArgs e)
     {
+        var configured = ConfigureDetectedClients();
+        Report(configured.Count == 0 ? "No supported AI client was detected. Use the individual configuration buttons after installing one." : "Configured: " + string.Join(", ", configured) + ". Restart the client to connect.");
+    }
+    private List<string> ConfigureDetectedClients()
+    {
         var configured = new List<string>();
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         if (Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".codex"))) { Configurator.ConfigureCodex(McpUrl); configured.Add("Codex"); }
         if (Directory.Exists(Path.Combine(appData, "Claude"))) { Configurator.ConfigureJson(Path.Combine(appData, "Claude", "claude_desktop_config.json"), "mcpServers", McpUrl); configured.Add("Claude Desktop"); }
         if (Directory.Exists(Path.Combine(appData, "Cursor"))) { Configurator.ConfigureJson(Path.Combine(appData, "Cursor", "User", "mcp.json"), "mcpServers", McpUrl); configured.Add("Cursor"); }
-        Report(configured.Count == 0 ? "No supported AI client was detected. Use the individual configuration buttons after installing one." : "Configured: " + string.Join(", ", configured) + ". Restart the client to connect.");
+        return configured;
+    }
+    private void OfferFirstRunClientSetup()
+    {
+        if (_clientSetupPrompted || DetectedClientNames().Count == 0) return;
+        _clientSetupPrompted = true;
+        SaveSettings();
+        var clients = string.Join(", ", DetectedClientNames());
+        if (System.Windows.MessageBox.Show("Detected " + clients + ". Configure it to use Zemax MCP now? Existing MCP entries will be kept.", "Zemax MCP first-time setup", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        {
+            var configured = ConfigureDetectedClients();
+            Report("Configured: " + string.Join(", ", configured) + ". Restart the client to connect.");
+        }
+    }
+    private static List<string> DetectedClientNames()
+    {
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var clients = new List<string>();
+        if (Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".codex"))) clients.Add("Codex");
+        if (Directory.Exists(Path.Combine(appData, "Claude"))) clients.Add("Claude Desktop");
+        if (Directory.Exists(Path.Combine(appData, "Cursor"))) clients.Add("Cursor");
+        return clients;
     }
     private void Codex_Click(object sender, RoutedEventArgs e) { Configurator.ConfigureCodex(McpUrl); Report("Codex configured for " + McpUrl); }
     private void Claude_Click(object sender, RoutedEventArgs e) { Configurator.ConfigureJson(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Claude", "claude_desktop_config.json"), "mcpServers", McpUrl); Report("Claude Desktop configured for " + McpUrl); }
@@ -261,6 +289,7 @@ public partial class MainWindow : Window
             RemoteEndpoint.Text = settings["remoteEndpoint"]?.ToString() ?? "";
             ShareOnLan.IsChecked = settings["shareOnLan"]?.Value<bool>() ?? false;
             StartOnLogin.IsChecked = settings["startOnLogin"]?.Value<bool>() ?? false;
+            _clientSetupPrompted = settings["clientSetupPrompted"]?.Value<bool>() ?? false;
         }
         catch { /* A malformed optional preference file must never prevent startup. */ }
     }
@@ -275,7 +304,8 @@ public partial class MainWindow : Window
                 ["port"] = Port.Text,
                 ["remoteEndpoint"] = RemoteEndpoint.Text,
                 ["shareOnLan"] = ShareOnLan.IsChecked == true,
-                ["startOnLogin"] = StartOnLogin.IsChecked == true
+                ["startOnLogin"] = StartOnLogin.IsChecked == true,
+                ["clientSetupPrompted"] = _clientSetupPrompted
             }.ToString());
         }
         catch { /* Preferences are non-essential. */ }
