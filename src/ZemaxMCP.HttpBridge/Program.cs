@@ -81,6 +81,7 @@ internal sealed class StdioMcpBridge : IDisposable
 {
     private readonly BridgeOptions _options;
     private readonly SemaphoreSlim _requestLock = new SemaphoreSlim(1, 1);
+    private readonly string _sessionId = Guid.NewGuid().ToString("N");
     private Process? _server;
     private HttpListener? _listener;
 
@@ -144,6 +145,13 @@ internal sealed class StdioMcpBridge : IDisposable
                 request = await reader.ReadToEndAsync().ConfigureAwait(false);
             var json = JObject.Parse(request);
             var id = json["id"];
+            var requestedSession = context.Request.Headers["Mcp-Session-Id"];
+            if (!string.IsNullOrWhiteSpace(requestedSession) && !string.Equals(requestedSession, _sessionId, StringComparison.Ordinal))
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                context.Response.Close();
+                return;
+            }
 
             await _requestLock.WaitAsync().ConfigureAwait(false);
             string? response;
@@ -165,6 +173,11 @@ internal sealed class StdioMcpBridge : IDisposable
             var bytes = Encoding.UTF8.GetBytes(response);
             context.Response.StatusCode = (int)HttpStatusCode.OK;
             context.Response.ContentType = "application/json; charset=utf-8";
+            // Streamable HTTP clients establish a session during initialize and
+            // return this value on subsequent requests. The underlying stdio
+            // server is intentionally stateful, so one bridge owns one session.
+            if (string.Equals(json["method"]?.ToString(), "initialize", StringComparison.Ordinal))
+                context.Response.Headers["Mcp-Session-Id"] = _sessionId;
             context.Response.ContentLength64 = bytes.Length;
             await context.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length).ConfigureAwait(false);
             context.Response.Close();
