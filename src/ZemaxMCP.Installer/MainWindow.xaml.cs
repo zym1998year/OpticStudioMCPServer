@@ -21,12 +21,19 @@ public partial class MainWindow : Window
                 Path.GetFullPath(source).TrimEnd(Path.DirectorySeparatorChar),
                 Path.GetFullPath(target).TrimEnd(Path.DirectorySeparatorChar),
                 StringComparison.OrdinalIgnoreCase);
-            if (!alreadyInstalled) foreach (var file in Directory.GetFiles(source))
+            if (!alreadyInstalled)
             {
-                var name = Path.GetFileName(file);
-                if (!name.StartsWith("Install", StringComparison.OrdinalIgnoreCase)) File.Copy(file, Path.Combine(target, name), true);
+                Status.Text = Directory.Exists(target) && Directory.EnumerateFileSystemEntries(target).Any()
+                    ? "Updating the existing installation. Stopping the old launcher…"
+                    : "Installing Zemax MCP…";
+                StopExistingProcesses();
+                foreach (var file in Directory.GetFiles(source))
+                {
+                    var name = Path.GetFileName(file);
+                    if (!name.StartsWith("Install", StringComparison.OrdinalIgnoreCase)) File.Copy(file, Path.Combine(target, name), true);
+                }
+                foreach (var directory in Directory.GetDirectories(source)) CopyDirectory(directory, Path.Combine(target, Path.GetFileName(directory)));
             }
-            if (!alreadyInstalled) foreach (var directory in Directory.GetDirectories(source)) CopyDirectory(directory, Path.Combine(target, Path.GetFileName(directory)));
             var launcher = Path.Combine(target, "Start-Zemax-MCP.exe");
             if (!File.Exists(launcher)) throw new FileNotFoundException("The release package is missing Start-Zemax-MCP.exe.");
             CreateDesktopShortcut(launcher);
@@ -41,6 +48,25 @@ public partial class MainWindow : Window
         Directory.CreateDirectory(target);
         foreach (var file in Directory.GetFiles(source)) File.Copy(file, Path.Combine(target, Path.GetFileName(file)), true);
         foreach (var folder in Directory.GetDirectories(source)) CopyDirectory(folder, Path.Combine(target, Path.GetFileName(folder)));
+    }
+    private static void StopExistingProcesses()
+    {
+        foreach (var name in new[] { "Start-Zemax-MCP", "ZemaxMCP.HttpBridge" })
+        {
+            foreach (var process in Process.GetProcessesByName(name))
+            {
+                try
+                {
+                    string executable;
+                    try { executable = process.MainModule?.FileName ?? string.Empty; }
+                    catch { continue; }
+                    if (!executable.StartsWith(InstallDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) continue;
+                    process.Kill();
+                    if (!process.WaitForExit(5000)) throw new InvalidOperationException($"Could not stop {name}. Please click Exit from its tray icon, then retry.");
+                }
+                finally { process.Dispose(); }
+            }
+        }
     }
     private static void CreateDesktopShortcut(string target)
     {
