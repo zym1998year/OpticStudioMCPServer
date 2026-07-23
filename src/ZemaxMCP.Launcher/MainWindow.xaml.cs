@@ -57,6 +57,12 @@ public partial class MainWindow : Window
     private void Stop_Click(object sender, RoutedEventArgs e) { StopBridge(); Report("HTTP MCP stopped."); }
     private void StopBridge() { try { if (_bridge != null && !_bridge.HasExited) _bridge.Kill(); } catch { } _bridge = null; }
     private void CopyEndpoint_Click(object sender, RoutedEventArgs e) { Clipboard.SetText(McpUrl); Report("MCP address copied: " + McpUrl); }
+    private void OpenLogs_Click(object sender, RoutedEventArgs e)
+    {
+        var logs = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+        Directory.CreateDirectory(logs);
+        Process.Start(new ProcessStartInfo(logs) { UseShellExecute = true });
+    }
     private void ConfigureDetected_Click(object sender, RoutedEventArgs e)
     {
         var configured = new List<string>();

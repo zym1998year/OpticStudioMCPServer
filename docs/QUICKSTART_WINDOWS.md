@@ -11,7 +11,9 @@ On the AI-client computer, extract the same release, double-click `Install.exe`,
 
 ## Updates and logs
 
-The launcher downloads and applies the current signed-off GitHub release with **Check updates**, then restarts itself. Releases are built automatically from version tags and include the server, HTTP bridge, launcher, and a rolling `logs` folder. Your OpticStudio installation and client configuration are retained.
+The launcher downloads and applies the current GitHub release with **Check updates**, then restarts itself. Each release includes the server, HTTP bridge, launcher, and a rolling `logs` folder. Your OpticStudio installation and client configuration are retained.
+
+Use **Open logs** in the launcher for both bridge and server diagnostics; no command prompt is needed to locate or inspect logs.
 
 ## Development builds
 
