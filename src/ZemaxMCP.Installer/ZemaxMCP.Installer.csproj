@@ -3,11 +3,10 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net48</TargetFramework>
     <UseWPF>true</UseWPF>
-    <AssemblyName>Start-Zemax-MCP</AssemblyName>
-    <RootNamespace>ZemaxMCP.Launcher</RootNamespace>
+    <AssemblyName>Install</AssemblyName>
+    <RootNamespace>ZemaxMCP.Installer</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" />
-    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 </Project>

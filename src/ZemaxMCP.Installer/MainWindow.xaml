@@ -1,0 +1,8 @@
+<Window x:Class="ZemaxMCP.Installer.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Install Zemax MCP" Width="560" Height="340" WindowStartupLocation="CenterScreen">
+  <Grid Margin="28"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <TextBlock Text="Install Zemax MCP" FontSize="24" FontWeight="SemiBold"/>
+    <TextBlock Grid.Row="1" Margin="0,12,0,0" TextWrapping="Wrap" Text="This installs a self-contained MCP launcher for your Windows account. It does not modify your OpticStudio installation and does not require administrator rights."/>
+    <TextBlock Grid.Row="2" x:Name="Status" Margin="0,18,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Foreground="DimGray"/>
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Install and start" Padding="16,7" Click="Install_Click"/><Button Content="Close" Padding="16,7" Margin="8,0,0,0" Click="Close_Click"/></StackPanel>
+  </Grid>
+</Window>

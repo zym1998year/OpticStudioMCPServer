@@ -22,23 +22,30 @@ public partial class MainWindow : Window
         var installs = ZemaxInstallation.FindAll();
         ZemaxVersions.ItemsSource = installs;
         ZemaxVersions.SelectedIndex = installs.Count > 0 ? 0 : -1;
-        Report(installs.Count == 0 ? "No OpticStudio installation detected. Install OpticStudio or select a supported installation before starting." : "Select an OpticStudio version, then start the HTTP MCP endpoint.");
+        Report(installs.Count == 0 ? "No OpticStudio installation detected. Install OpticStudio or select a supported installation before starting." : "Starting local MCP endpoint automatically…");
         RefreshEndpoint();
+        if (installs.Count == 1) StartBridge();
     }
     private void ZemaxVersions_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => RefreshEndpoint();
-    private void RefreshEndpoint() => Endpoint.Text = "MCP endpoint: http://" + (Host?.Text == "0.0.0.0" ? "<this-PC-IP>" : Host?.Text) + ":" + Port?.Text + "/mcp";
+    private string HostName => ShareOnLan.IsChecked == true ? "0.0.0.0" : "127.0.0.1";
+    private void RefreshEndpoint() => Endpoint.Text = "MCP endpoint: " + Url;
     private ZemaxInstallation? Installation => ZemaxVersions.SelectedItem as ZemaxInstallation;
-    private string Url => "http://" + (Host.Text == "0.0.0.0" ? GetLanAddress() : Host.Text) + ":" + Port.Text + "/mcp";
+    private string Url => "http://" + (ShareOnLan.IsChecked == true ? GetLanAddress() : "127.0.0.1") + ":" + Port.Text + "/mcp";
 
-    private void Start_Click(object sender, RoutedEventArgs e)
+    private void ShareOnLan_Changed(object sender, RoutedEventArgs e) { RefreshEndpoint(); StopBridge(); if (Installation != null) StartBridge(); }
+
+    private void Start_Click(object sender, RoutedEventArgs e) => StartBridge();
+    private void StartBridge()
     {
         if (Installation == null) { Report("Choose a detected OpticStudio installation first."); return; }
         StopBridge();
         var bridge = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ZemaxMCP.HttpBridge.exe");
         var server = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ZemaxMCP.Server.exe");
         if (!File.Exists(bridge) || !File.Exists(server)) { Report("Release package is incomplete: ZemaxMCP.HttpBridge.exe and ZemaxMCP.Server.exe must be beside this launcher."); return; }
-        _bridge = Process.Start(new ProcessStartInfo(bridge, $"--server \"{server}\" --zemax-root \"{Installation.Root}\" --host {Host.Text} --port {Port.Text}") { UseShellExecute = false, CreateNoWindow = true });
-        Report("HTTP MCP started: " + Url + Environment.NewLine + "Logs: " + Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs"));
+        var firewallReady = ShareOnLan.IsChecked != true || FirewallRule.TryEnsure(Port.Text);
+        _bridge = Process.Start(new ProcessStartInfo(bridge, $"--server \"{server}\" --zemax-root \"{Installation.Root}\" --host {HostName} --port {Port.Text}") { UseShellExecute = false, CreateNoWindow = true });
+        Report("HTTP MCP started: " + Url + Environment.NewLine + "Logs: " + Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs") +
+            (firewallReady ? "" : Environment.NewLine + "Firewall permission was not granted; another PC may not reach this endpoint."));
     }
     private void Stop_Click(object sender, RoutedEventArgs e) { StopBridge(); Report("HTTP MCP stopped."); }
     private void StopBridge() { try { if (_bridge != null && !_bridge.HasExited) _bridge.Kill(); } catch { } _bridge = null; }
@@ -63,7 +70,7 @@ public partial class MainWindow : Window
                 ZipFile.ExtractToDirectory(zip, staging);
                 var install = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
                 var script = Path.Combine(staging, "apply-update.cmd");
-                File.WriteAllText(script, "@echo off\r\nping 127.0.0.1 -n 4 > nul\r\nrobocopy \"" + staging + "\" \"" + install + "\" /E /MOV /XF release.zip apply-update.cmd > nul\r\nstart \"\" \"" + Path.Combine(install, "Zemax MCP Setup.exe") + "\"\r\n");
+                File.WriteAllText(script, "@echo off\r\nping 127.0.0.1 -n 4 > nul\r\nrobocopy \"" + staging + "\" \"" + install + "\" /E /MOV /XF release.zip apply-update.cmd > nul\r\nstart \"\" \"" + Path.Combine(install, "Start-Zemax-MCP.exe") + "\"\r\n");
                 Process.Start(new ProcessStartInfo("cmd.exe", "/c \"" + script + "\"") { CreateNoWindow = true, UseShellExecute = false });
                 Report("Update downloaded. Restarting with " + release["tag_name"] + "…");
                 Application.Current.Shutdown();
@@ -74,6 +81,24 @@ public partial class MainWindow : Window
     private void Report(string text) => Status.Text = DateTime.Now.ToString("HH:mm:ss") + "  " + text;
     private static string GetLanAddress() => Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(x => x.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !IPAddress.IsLoopback(x))?.ToString() ?? "127.0.0.1";
     protected override void OnClosed(EventArgs e) { StopBridge(); base.OnClosed(e); }
+}
+
+internal static class FirewallRule
+{
+    public static bool TryEnsure(string port)
+    {
+        try
+        {
+            var rule = "Zemax MCP HTTP " + port;
+            var arguments = "advfirewall firewall add rule name=\"" + rule + "\" dir=in action=allow protocol=TCP localport=" + port + " profile=private";
+            using (var process = Process.Start(new ProcessStartInfo("netsh.exe", arguments) { Verb = "runas", UseShellExecute = true }))
+            {
+                process.WaitForExit();
+                return process.ExitCode == 0;
+            }
+        }
+        catch { return false; }
+    }
 }
 
 public sealed class ZemaxInstallation
