@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
+using Microsoft.Win32;
 using Newtonsoft.Json.Linq;
 
 namespace ZemaxMCP.Launcher;
@@ -21,14 +22,17 @@ public partial class MainWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        LoadSettings();
         var installs = ZemaxInstallation.FindAll();
         ZemaxVersions.ItemsSource = installs;
-        ZemaxVersions.SelectedIndex = installs.Count > 0 ? 0 : -1;
+        var savedRoot = ReadSetting("zemaxRoot");
+        ZemaxVersions.SelectedItem = installs.FirstOrDefault(x => x.Root.Equals(savedRoot, StringComparison.OrdinalIgnoreCase));
+        if (ZemaxVersions.SelectedItem == null) ZemaxVersions.SelectedIndex = installs.Count > 0 ? 0 : -1;
         Report(installs.Count == 0 ? "No OpticStudio installation detected. Install OpticStudio or select a supported installation before starting." : "Starting local MCP endpoint automatically…");
         RefreshEndpoint();
         if (installs.Count > 0) StartBridge();
     }
-    private void ZemaxVersions_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => RefreshEndpoint();
+    private void ZemaxVersions_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) { RefreshEndpoint(); SaveSettings(); }
     private string HostName => ShareOnLan.IsChecked == true ? "0.0.0.0" : "127.0.0.1";
     private void RefreshEndpoint() => Endpoint.Text = "MCP endpoint: " + Url;
     private ZemaxInstallation? Installation => ZemaxVersions.SelectedItem as ZemaxInstallation;
@@ -36,7 +40,18 @@ public partial class MainWindow : Window
     private string McpUrl => Uri.TryCreate(RemoteEndpoint.Text, UriKind.Absolute, out var remote) &&
         (remote.Scheme == Uri.UriSchemeHttp || remote.Scheme == Uri.UriSchemeHttps) ? remote.ToString().TrimEnd('/') : Url;
 
-    private void ShareOnLan_Changed(object sender, RoutedEventArgs e) { RefreshEndpoint(); StopBridge(); if (Installation != null) StartBridge(); }
+    private void ShareOnLan_Changed(object sender, RoutedEventArgs e) { RefreshEndpoint(); SaveSettings(); StopBridge(); if (Installation != null) StartBridge(); }
+    private void StartOnLogin_Changed(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            using var run = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
+            if (StartOnLogin.IsChecked == true) run?.SetValue("ZemaxMCP", "\"" + Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Start-Zemax-MCP.exe") + "\"");
+            else run?.DeleteValue("ZemaxMCP", false);
+            SaveSettings();
+        }
+        catch (Exception ex) { Report("Could not change sign-in startup: " + ex.Message); }
+    }
 
     private void Start_Click(object sender, RoutedEventArgs e) => StartBridge();
     private void StartBridge()
@@ -48,6 +63,7 @@ public partial class MainWindow : Window
             return;
         }
         StopBridge();
+        SaveSettings();
         var bridge = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ZemaxMCP.HttpBridge.exe");
         var server = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ZemaxMCP.Server.exe");
         if (!File.Exists(bridge) || !File.Exists(server)) { Report("Release package is incomplete: ZemaxMCP.HttpBridge.exe and ZemaxMCP.Server.exe must be beside this launcher."); return; }
@@ -145,6 +161,41 @@ public partial class MainWindow : Window
         catch (Exception ex) { Report("Could not check GitHub releases: " + ex.Message); }
     }
     private void Report(string text) => Status.Text = DateTime.Now.ToString("HH:mm:ss") + "  " + text;
+    private static string SettingsPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ZemaxMCP", "launcher-settings.json");
+    private string? ReadSetting(string key)
+    {
+        try { return File.Exists(SettingsPath) ? JObject.Parse(File.ReadAllText(SettingsPath))[key]?.ToString() : null; }
+        catch { return null; }
+    }
+    private void LoadSettings()
+    {
+        try
+        {
+            if (!File.Exists(SettingsPath)) return;
+            var settings = JObject.Parse(File.ReadAllText(SettingsPath));
+            Port.Text = settings["port"]?.ToString() ?? Port.Text;
+            RemoteEndpoint.Text = settings["remoteEndpoint"]?.ToString() ?? "";
+            ShareOnLan.IsChecked = settings["shareOnLan"]?.Value<bool>() ?? false;
+            StartOnLogin.IsChecked = settings["startOnLogin"]?.Value<bool>() ?? false;
+        }
+        catch { /* A malformed optional preference file must never prevent startup. */ }
+    }
+    private void SaveSettings()
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
+            File.WriteAllText(SettingsPath, new JObject
+            {
+                ["zemaxRoot"] = Installation?.Root ?? "",
+                ["port"] = Port.Text,
+                ["remoteEndpoint"] = RemoteEndpoint.Text,
+                ["shareOnLan"] = ShareOnLan.IsChecked == true,
+                ["startOnLogin"] = StartOnLogin.IsChecked == true
+            }.ToString());
+        }
+        catch { /* Preferences are non-essential. */ }
+    }
     private static string GetLanAddress() => Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(x => x.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !IPAddress.IsLoopback(x))?.ToString() ?? "127.0.0.1";
     protected override void OnClosed(EventArgs e) { StopBridge(); base.OnClosed(e); }
 }
