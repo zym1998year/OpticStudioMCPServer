@@ -23,7 +23,10 @@ dotnet build "$root\src\ZemaxMCP.Installer\ZemaxMCP.Installer.csproj" -c $Config
 
 $projects = "ZemaxMCP.Server", "ZemaxMCP.HttpBridge", "ZemaxMCP.Launcher", "ZemaxMCP.Installer"
 foreach ($project in $projects) {
-  Copy-Item "$root\src\$project\bin\$Configuration\net48\*" $publish -Recurse -Force
+  # PDB files contain the absolute source path used by the release builder.
+  # They are not needed to run the application and would expose that path in
+  # user-facing exception logs.
+  Copy-Item "$root\src\$project\bin\$Configuration\net48\*" $publish -Recurse -Force -Exclude "*.pdb", "*.xml"
 }
 Copy-Item "$root\installer\Portable-Install.cmd" "$publish\Portable-Install.cmd" -Force
 Copy-Item "$root\installer\Start-Zemax-MCP.cmd" "$publish\Start-Zemax-MCP.cmd" -Force
