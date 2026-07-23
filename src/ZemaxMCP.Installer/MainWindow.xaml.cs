@@ -17,12 +17,16 @@ public partial class MainWindow : Window
             var source = AppDomain.CurrentDomain.BaseDirectory;
             var target = InstallDirectory;
             Directory.CreateDirectory(target);
-            foreach (var file in Directory.GetFiles(source))
+            var alreadyInstalled = string.Equals(
+                Path.GetFullPath(source).TrimEnd(Path.DirectorySeparatorChar),
+                Path.GetFullPath(target).TrimEnd(Path.DirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase);
+            if (!alreadyInstalled) foreach (var file in Directory.GetFiles(source))
             {
                 var name = Path.GetFileName(file);
                 if (!name.StartsWith("Install", StringComparison.OrdinalIgnoreCase)) File.Copy(file, Path.Combine(target, name), true);
             }
-            foreach (var directory in Directory.GetDirectories(source)) CopyDirectory(directory, Path.Combine(target, Path.GetFileName(directory)));
+            if (!alreadyInstalled) foreach (var directory in Directory.GetDirectories(source)) CopyDirectory(directory, Path.Combine(target, Path.GetFileName(directory)));
             var launcher = Path.Combine(target, "Start-Zemax-MCP.exe");
             if (!File.Exists(launcher)) throw new FileNotFoundException("The release package is missing Start-Zemax-MCP.exe.");
             CreateDesktopShortcut(launcher);
