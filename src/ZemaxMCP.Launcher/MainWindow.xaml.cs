@@ -15,6 +15,7 @@ namespace ZemaxMCP.Launcher;
 public partial class MainWindow : Window
 {
     private Process? _bridge;
+    private bool _stoppingBridge;
     public MainWindow() => InitializeComponent();
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -51,11 +52,26 @@ public partial class MainWindow : Window
         if (!File.Exists(bridge) || !File.Exists(server)) { Report("Release package is incomplete: ZemaxMCP.HttpBridge.exe and ZemaxMCP.Server.exe must be beside this launcher."); return; }
         var firewallReady = ShareOnLan.IsChecked != true || FirewallRule.TryEnsure(port);
         _bridge = Process.Start(new ProcessStartInfo(bridge, $"--server \"{server}\" --zemax-root \"{Installation.Root}\" --host {HostName} --port {port}") { UseShellExecute = false, CreateNoWindow = true });
+        if (_bridge != null)
+        {
+            _bridge.EnableRaisingEvents = true;
+            _bridge.Exited += (_, _) =>
+            {
+                if (_stoppingBridge) { _stoppingBridge = false; return; }
+                Dispatcher.BeginInvoke(new Action(() => Report("MCP bridge stopped unexpectedly. Use Open logs to see why (common causes: port in use, firewall/URL permission, or OpticStudio initialization).")));
+            };
+        }
         Report("HTTP MCP started: " + Url + Environment.NewLine + "Logs: " + Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs") +
             (firewallReady ? "" : Environment.NewLine + "Firewall permission was not granted; another PC may not reach this endpoint."));
     }
     private void Stop_Click(object sender, RoutedEventArgs e) { StopBridge(); Report("HTTP MCP stopped."); }
-    private void StopBridge() { try { if (_bridge != null && !_bridge.HasExited) _bridge.Kill(); } catch { } _bridge = null; }
+    private void StopBridge()
+    {
+        if (_bridge == null) return;
+        _stoppingBridge = true;
+        try { if (_bridge != null && !_bridge.HasExited) _bridge.Kill(); } catch { }
+        _bridge = null;
+    }
     private void CopyEndpoint_Click(object sender, RoutedEventArgs e) { Clipboard.SetText(McpUrl); Report("MCP address copied: " + McpUrl); }
     private void OpenLogs_Click(object sender, RoutedEventArgs e)
     {
