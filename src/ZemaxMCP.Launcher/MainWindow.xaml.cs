@@ -49,6 +49,16 @@ public partial class MainWindow : Window
     }
     private void Stop_Click(object sender, RoutedEventArgs e) { StopBridge(); Report("HTTP MCP stopped."); }
     private void StopBridge() { try { if (_bridge != null && !_bridge.HasExited) _bridge.Kill(); } catch { } _bridge = null; }
+    private void CopyEndpoint_Click(object sender, RoutedEventArgs e) { Clipboard.SetText(Url); Report("MCP address copied: " + Url); }
+    private void ConfigureDetected_Click(object sender, RoutedEventArgs e)
+    {
+        var configured = new List<string>();
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        if (Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".codex"))) { Configurator.ConfigureCodex(Url); configured.Add("Codex"); }
+        if (Directory.Exists(Path.Combine(appData, "Claude"))) { Configurator.ConfigureJson(Path.Combine(appData, "Claude", "claude_desktop_config.json"), "mcpServers", Url); configured.Add("Claude Desktop"); }
+        if (Directory.Exists(Path.Combine(appData, "Cursor"))) { Configurator.ConfigureJson(Path.Combine(appData, "Cursor", "User", "mcp.json"), "mcpServers", Url); configured.Add("Cursor"); }
+        Report(configured.Count == 0 ? "No supported AI client was detected. Use the individual configuration buttons after installing one." : "Configured: " + string.Join(", ", configured) + ". Restart the client to connect.");
+    }
     private void Codex_Click(object sender, RoutedEventArgs e) { Configurator.ConfigureCodex(Url); Report("Codex configured for " + Url); }
     private void Claude_Click(object sender, RoutedEventArgs e) { Configurator.ConfigureJson(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Claude", "claude_desktop_config.json"), "mcpServers", Url); Report("Claude Desktop configured for " + Url); }
     private void Cursor_Click(object sender, RoutedEventArgs e) { Configurator.ConfigureJson(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Cursor", "User", "mcp.json"), "mcpServers", Url); Report("Cursor configured for " + Url); }

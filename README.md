@@ -6,7 +6,7 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 >
 > 1. Download and extract `ZemaxMCP-win-x64.zip` from [Releases](../../releases).
 > 2. Double-click **Install.exe**. It installs only for the current Windows user, makes a desktop shortcut, and starts the service.
-> 3. In the **Zemax MCP** window, click **Configure Codex**, **Configure Claude**, or **Configure Cursor**. Restart that AI client once.
+> 3. In the **Zemax MCP** window, click **Configure installed AI clients**. It detects and configures Codex, Claude Desktop, and Cursor in one operation; restart the selected AI client once.
 > 4. The local MCP address is displayed in the window. For a second trusted computer, select **Share with a trusted LAN computer** and use the displayed LAN address on that computer.
 >
 > No Node.js, Supergateway, terminal, source checkout, or manual ZOS-API DLL copying is required for end users. For the full screen-by-screen guide, see [Windows Quick Start](docs/QUICKSTART_WINDOWS.md).
