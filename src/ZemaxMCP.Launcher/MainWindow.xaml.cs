@@ -40,12 +40,17 @@ public partial class MainWindow : Window
     private void StartBridge()
     {
         if (Installation == null) { Report("Choose a detected OpticStudio installation first."); return; }
+        if (!int.TryParse(Port.Text, out var port) || port < 1 || port > 65535)
+        {
+            Report("Port must be a number from 1 to 65535.");
+            return;
+        }
         StopBridge();
         var bridge = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ZemaxMCP.HttpBridge.exe");
         var server = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ZemaxMCP.Server.exe");
         if (!File.Exists(bridge) || !File.Exists(server)) { Report("Release package is incomplete: ZemaxMCP.HttpBridge.exe and ZemaxMCP.Server.exe must be beside this launcher."); return; }
-        var firewallReady = ShareOnLan.IsChecked != true || FirewallRule.TryEnsure(Port.Text);
-        _bridge = Process.Start(new ProcessStartInfo(bridge, $"--server \"{server}\" --zemax-root \"{Installation.Root}\" --host {HostName} --port {Port.Text}") { UseShellExecute = false, CreateNoWindow = true });
+        var firewallReady = ShareOnLan.IsChecked != true || FirewallRule.TryEnsure(port);
+        _bridge = Process.Start(new ProcessStartInfo(bridge, $"--server \"{server}\" --zemax-root \"{Installation.Root}\" --host {HostName} --port {port}") { UseShellExecute = false, CreateNoWindow = true });
         Report("HTTP MCP started: " + Url + Environment.NewLine + "Logs: " + Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs") +
             (firewallReady ? "" : Environment.NewLine + "Firewall permission was not granted; another PC may not reach this endpoint."));
     }
@@ -97,7 +102,7 @@ public partial class MainWindow : Window
 
 internal static class FirewallRule
 {
-    public static bool TryEnsure(string port)
+    public static bool TryEnsure(int port)
     {
         try
         {
