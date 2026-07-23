@@ -1,0 +1,27 @@
+name: Publish Windows release
+
+on:
+  push:
+    tags: ["v*"]
+
+# A full package is deliberately built on a maintained Zemax workstation. The
+# ZOS-API assemblies are supplied by that licensed installation rather than
+# checked into this repository or copied to a public hosted runner.
+jobs:
+  publish:
+    runs-on: [self-hosted, windows, zemax]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build the end-user package
+        shell: pwsh
+        run: ./scripts/publish-windows.ps1 -Configuration Release -ZemaxRoot $env:ZEMAX_ROOT
+      - name: Publish ZIP for automatic updates
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/ZemaxMCP-win-x64.zip
