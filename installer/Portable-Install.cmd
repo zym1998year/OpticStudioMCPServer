@@ -7,17 +7,15 @@ set "TARGET=%LOCALAPPDATA%\ZemaxMCP"
 if not exist "%TARGET%" mkdir "%TARGET%"
 robocopy "%SOURCE%" "%TARGET%" /E /XD logs >nul
 
-if exist "%TARGET%\Start-Zemax-MCP.exe" (
-  start "" "%TARGET%\Start-Zemax-MCP.exe"
+if exist "%SOURCE%\Start-Zemax-MCP.exe" (
+  rem Prefer this extracted release, even if a managed device blocked the copy.
+  start "" "%SOURCE%\Start-Zemax-MCP.exe"
   endlocal
   exit /b 0
 )
 
-rem A managed device can prohibit copying executables into LocalAppData.
-rem The extracted release remains a safe portable fallback in that case.
-if exist "%SOURCE%\Start-Zemax-MCP.exe" (
-  echo Per-user installation was blocked. Starting the portable release instead.
-  start "" "%SOURCE%\Start-Zemax-MCP.exe"
+if exist "%TARGET%\Start-Zemax-MCP.exe" (
+  start "" "%TARGET%\Start-Zemax-MCP.exe"
   endlocal
   exit /b 0
 )
