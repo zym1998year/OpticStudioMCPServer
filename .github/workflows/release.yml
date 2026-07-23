@@ -1,8 +1,9 @@
-name: Build Windows release
+name: Verify Windows desktop components
 
 on:
+  pull_request:
   push:
-    tags: ["v*"]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -12,14 +13,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with: { dotnet-version: '8.0.x' }
-      - name: Build portable package
+      - name: Build public desktop components
         shell: pwsh
-        run: ./scripts/publish-windows.ps1
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ZemaxMCP-win-x64
-          path: artifacts/ZemaxMCP-win-x64.zip
-      - if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/ZemaxMCP-win-x64.zip
+        run: |
+          dotnet build src/ZemaxMCP.HttpBridge/ZemaxMCP.HttpBridge.csproj -c Release
+          dotnet build src/ZemaxMCP.Launcher/ZemaxMCP.Launcher.csproj -c Release
+          dotnet build src/ZemaxMCP.Installer/ZemaxMCP.Installer.csproj -c Release

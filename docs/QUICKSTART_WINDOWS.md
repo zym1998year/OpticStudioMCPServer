@@ -15,7 +15,7 @@ The launcher downloads and applies the current signed-off GitHub release with **
 
 ## Development builds
 
-Create `ZemaxPaths.props` with `ZEMAX_ROOT` set to an OpticStudio folder (or a copied, compatible ZOS-API folder), then run:
+Release maintainers create the ZIP on a Windows computer that has OpticStudio installed (the ZOS-API DLLs are proprietary and cannot be built on GitHub-hosted runners). Set `ZEMAX_ROOT` to the OpticStudio folder, then run:
 
 ```powershell
 ./scripts/publish-windows.ps1

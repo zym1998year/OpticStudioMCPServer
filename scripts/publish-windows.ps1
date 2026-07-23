@@ -1,12 +1,22 @@
-param([string]$Configuration = "Release")
+param(
+  [string]$Configuration = "Release",
+  [string]$ZemaxRoot = $env:ZEMAX_ROOT
+)
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
 $publish = Join-Path $root "artifacts\ZemaxMCP"
+
+if ([string]::IsNullOrWhiteSpace($ZemaxRoot)) {
+  throw "Set ZEMAX_ROOT to the installed OpticStudio folder before creating a release package."
+}
+foreach ($dll in "ZOSAPI.dll", "ZOSAPI_Interfaces.dll", "ZOSAPI_NetHelper.dll") {
+  if (-not (Test-Path (Join-Path $ZemaxRoot $dll))) { throw "Missing $dll under ZEMAX_ROOT: $ZemaxRoot" }
+}
 Remove-Item $publish -Recurse -Force -ErrorAction SilentlyContinue
 New-Item $publish -ItemType Directory -Force | Out-Null
 
-dotnet build "$root\src\ZemaxMCP.Server\ZemaxMCP.Server.csproj" -c $Configuration
+dotnet build "$root\src\ZemaxMCP.Server\ZemaxMCP.Server.csproj" -c $Configuration -p:ZEMAX_ROOT="$ZemaxRoot"
 dotnet build "$root\src\ZemaxMCP.HttpBridge\ZemaxMCP.HttpBridge.csproj" -c $Configuration
 dotnet build "$root\src\ZemaxMCP.Launcher\ZemaxMCP.Launcher.csproj" -c $Configuration
 dotnet build "$root\src\ZemaxMCP.Installer\ZemaxMCP.Installer.csproj" -c $Configuration
