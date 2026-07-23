@@ -82,6 +82,7 @@ public partial class MainWindow : Window
         var bridge = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ZemaxMCP.HttpBridge.exe");
         var server = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ZemaxMCP.Server.exe");
         if (!File.Exists(bridge) || !File.Exists(server)) { Report("Release package is incomplete: ZemaxMCP.HttpBridge.exe and ZemaxMCP.Server.exe must be beside this launcher."); return; }
+        if (!EnsureZosApiBootstrap(Installation.Root)) return;
         var firewallReady = ShareOnLan.IsChecked != true || FirewallRule.TryEnsure(port);
         _bridge = Process.Start(new ProcessStartInfo(bridge, $"--server \"{server}\" --zemax-root \"{Installation.Root}\" --host {HostName} --port {port}") { UseShellExecute = false, CreateNoWindow = true });
         if (_bridge != null)
@@ -109,6 +110,27 @@ public partial class MainWindow : Window
         _stoppingBridge = true;
         try { if (_bridge != null && !_bridge.HasExited) _bridge.Kill(); } catch { }
         _bridge = null;
+    }
+    private bool EnsureZosApiBootstrap(string zemaxRoot)
+    {
+        try
+        {
+            // NetHelper is an Ansys library, so it is deliberately absent from
+            // the public ZIP. Copy the current user's own installed copy only
+            // when launching locally; ZOSAPI itself continues to load from
+            // ZEMAX_ROOT through the server resolver.
+            var source = Path.Combine(zemaxRoot, "ZOSAPI_NetHelper.dll");
+            var target = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ZOSAPI_NetHelper.dll");
+            if (!File.Exists(source)) { Report("The selected OpticStudio installation is missing ZOSAPI_NetHelper.dll."); return false; }
+            if (!File.Exists(target) || File.GetLastWriteTimeUtc(source) != File.GetLastWriteTimeUtc(target) || new FileInfo(source).Length != new FileInfo(target).Length)
+                File.Copy(source, target, true);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Report("Could not prepare the local ZOS-API runtime: " + ex.Message);
+            return false;
+        }
     }
     private void CopyEndpoint_Click(object sender, RoutedEventArgs e) { System.Windows.Clipboard.SetText(McpUrl); Report("MCP address copied: " + McpUrl); }
     private async void TestMcp_Click(object sender, RoutedEventArgs e)

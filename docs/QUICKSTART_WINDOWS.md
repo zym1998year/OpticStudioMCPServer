@@ -15,6 +15,8 @@ On the AI-client computer, extract the same release, double-click `Install.exe`,
 
 The launcher downloads and applies the current GitHub release with **Check updates**, then restarts itself. Each release includes the server, HTTP bridge, launcher, and a rolling `logs` folder. Your OpticStudio installation and client configuration are retained.
 
+The public ZIP intentionally contains no `ZOSAPI*.dll` files. On the computer that has OpticStudio installed, the launcher uses that user's local licensed installation at runtime; it does not download, bundle, or redistribute Ansys ZOS-API files.
+
 ### Maintainers: publishing an update
 
 The full ZIP is published from a trusted self-hosted Windows GitHub Actions runner that has a licensed OpticStudio installation. Give that runner the labels `self-hosted`, `windows`, and `zemax`, and set its machine-level `ZEMAX_ROOT` environment variable to the OpticStudio directory. Pushing a `v*` tag then creates the GitHub Release and uploads `ZemaxMCP-win-x64.zip`; installed launchers will discover it through **Check updates**. This keeps proprietary ZOS-API files out of source control and public hosted runners.

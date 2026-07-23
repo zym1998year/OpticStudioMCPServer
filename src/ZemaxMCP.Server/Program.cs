@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ModelContextProtocol.Server;
 using Serilog;
+using System.Reflection;
 using ZemaxMCP.Core.Logging;
 using ZemaxMCP.Core.Services.ConstrainedOptimization;
 using ZemaxMCP.Core.Session;
@@ -16,6 +17,18 @@ Console.SetOut(TextWriter.Null);
 // The launcher sets ZEMAX_ROOT after detecting the selected OpticStudio version.
 // Keeping the implicit lookup as a fallback preserves the existing stdio workflow.
 var zemaxRoot = Environment.GetEnvironmentVariable("ZEMAX_ROOT");
+if (!string.IsNullOrWhiteSpace(zemaxRoot))
+{
+    // ZOS-API is supplied by the user's licensed OpticStudio installation.
+    // Never copy or redistribute those assemblies with this application.
+    AppDomain.CurrentDomain.AssemblyResolve += (_, args) =>
+    {
+        var name = new AssemblyName(args.Name).Name;
+        if (string.IsNullOrWhiteSpace(name) || !name.StartsWith("ZOSAPI", StringComparison.OrdinalIgnoreCase)) return null;
+        var candidate = Path.Combine(zemaxRoot, name + ".dll");
+        return File.Exists(candidate) ? Assembly.LoadFrom(candidate) : null;
+    };
+}
 var initialized = string.IsNullOrWhiteSpace(zemaxRoot)
     ? ZOSAPI_NetHelper.ZOSAPI_Initializer.Initialize()
     : ZOSAPI_NetHelper.ZOSAPI_Initializer.Initialize(zemaxRoot);
