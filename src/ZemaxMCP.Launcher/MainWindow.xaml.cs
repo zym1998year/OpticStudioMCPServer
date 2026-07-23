@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -10,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Win32;
+using Forms = System.Windows.Forms;
 using Newtonsoft.Json.Linq;
 
 namespace ZemaxMCP.Launcher;
@@ -18,7 +20,18 @@ public partial class MainWindow : Window
 {
     private Process? _bridge;
     private bool _stoppingBridge;
-    public MainWindow() => InitializeComponent();
+    private bool _exitRequested;
+    private readonly Forms.NotifyIcon _trayIcon;
+    public MainWindow()
+    {
+        InitializeComponent();
+        _trayIcon = new Forms.NotifyIcon { Icon = System.Drawing.SystemIcons.Application, Text = "Zemax MCP", Visible = true };
+        _trayIcon.DoubleClick += (_, _) => RestoreWindow();
+        var menu = new Forms.ContextMenuStrip();
+        menu.Items.Add("Open Zemax MCP", null, (_, _) => RestoreWindow());
+        menu.Items.Add("Exit", null, (_, _) => ExitApplication());
+        _trayIcon.ContextMenuStrip = menu;
+    }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -84,6 +97,12 @@ public partial class MainWindow : Window
             (firewallReady ? "" : Environment.NewLine + "Firewall permission was not granted; another PC may not reach this endpoint."));
     }
     private void Stop_Click(object sender, RoutedEventArgs e) { StopBridge(); Report("HTTP MCP stopped."); }
+    private void Exit_Click(object sender, RoutedEventArgs e) => ExitApplication();
+    private void ExitApplication()
+    {
+        _exitRequested = true;
+        Close();
+    }
     private void StopBridge()
     {
         if (_bridge == null) return;
@@ -91,7 +110,7 @@ public partial class MainWindow : Window
         try { if (_bridge != null && !_bridge.HasExited) _bridge.Kill(); } catch { }
         _bridge = null;
     }
-    private void CopyEndpoint_Click(object sender, RoutedEventArgs e) { Clipboard.SetText(McpUrl); Report("MCP address copied: " + McpUrl); }
+    private void CopyEndpoint_Click(object sender, RoutedEventArgs e) { System.Windows.Clipboard.SetText(McpUrl); Report("MCP address copied: " + McpUrl); }
     private async void TestMcp_Click(object sender, RoutedEventArgs e)
     {
         var endpoint = McpUrl;
@@ -157,7 +176,7 @@ public partial class MainWindow : Window
                 File.WriteAllText(script, "@echo off\r\nping 127.0.0.1 -n 4 > nul\r\nrobocopy \"" + staging + "\" \"" + install + "\" /E /MOV /XF release.zip apply-update.cmd > nul\r\nstart \"\" \"" + Path.Combine(install, "Start-Zemax-MCP.exe") + "\"\r\n");
                 Process.Start(new ProcessStartInfo("cmd.exe", "/c \"" + script + "\"") { CreateNoWindow = true, UseShellExecute = false });
                 Report("Update downloaded. Restarting with " + release["tag_name"] + "…");
-                Application.Current.Shutdown();
+                System.Windows.Application.Current.Shutdown();
             }
         }
         catch (Exception ex) { Report("Could not check GitHub releases: " + ex.Message); }
@@ -199,7 +218,29 @@ public partial class MainWindow : Window
         catch { /* Preferences are non-essential. */ }
     }
     private static string GetLanAddress() => Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(x => x.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !IPAddress.IsLoopback(x))?.ToString() ?? "127.0.0.1";
-    protected override void OnClosed(EventArgs e) { StopBridge(); base.OnClosed(e); }
+    private void RestoreWindow()
+    {
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (!_exitRequested)
+        {
+            e.Cancel = true;
+            Hide();
+            _trayIcon.ShowBalloonTip(2500, "Zemax MCP is still running", "Use the tray icon to reopen it. Choose Exit to stop the MCP service.", Forms.ToolTipIcon.Info);
+        }
+        base.OnClosing(e);
+    }
+    protected override void OnClosed(EventArgs e)
+    {
+        StopBridge();
+        _trayIcon.Visible = false;
+        _trayIcon.Dispose();
+        base.OnClosed(e);
+    }
 }
 
 internal static class FirewallRule

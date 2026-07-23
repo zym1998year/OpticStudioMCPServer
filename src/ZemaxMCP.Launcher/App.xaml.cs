@@ -4,7 +4,7 @@ using System.Windows;
 
 namespace ZemaxMCP.Launcher
 {
-    public partial class App : Application
+    public partial class App : System.Windows.Application
     {
         private Mutex? _instance;
         protected override void OnStartup(StartupEventArgs e)
@@ -12,7 +12,7 @@ namespace ZemaxMCP.Launcher
             _instance = new Mutex(true, "ZemaxMCP.Launcher.SingleInstance", out var created);
             if (!created)
             {
-                MessageBox.Show("Zemax MCP is already running.", "Zemax MCP", MessageBoxButton.OK, MessageBoxImage.Information);
+                System.Windows.MessageBox.Show("Zemax MCP is already running.", "Zemax MCP", MessageBoxButton.OK, MessageBoxImage.Information);
                 Shutdown();
                 return;
             }
