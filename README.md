@@ -309,6 +309,10 @@ The AI defaults to **standalone** mode unless you explicitly request extension m
 | `zemax_list_surface_types` | List surface type names supported by ZOSAPI | *none* |
 | `zemax_get_extra_data` | Read Extra Data Editor (XDAT) cells for a surface | `surfaceNumber` (**required**) · `startCell` (opt, default: `1`) · `endCell` (opt, default: `0` = auto-detect) |
 | `zemax_set_extra_data` | Write XDAT cells; batch and Variable-mark supported | `surfaceNumber` (**required**) · `cell` (opt) · `value` (opt) · `makeVariable` (opt) · `batchSet` (opt): e.g. `"3:0.1,4:-0.05"` · `variableCells` (opt): e.g. `"3,4,11"` |
+| `zemax_set_surface_aperture` | Set a real circular aperture or obscuration that terminates rays | `surfaceNumber`, `apertureType` (**required**) · `minimumRadius`, `maximumRadius`, `xDecenter`, `yDecenter` (opt) |
+| `zemax_get_surface_aperture` | Read the real aperture or obscuration on a surface | `surfaceNumber` (**required**) |
+| `zemax_set_off_axis_conic` | Read or set the offset and normalization radius of an Off-Axis Conic Freeform surface | `surfaceNumber` (**required**) · `offset`, `normRadius`, `offsetVariable` (opt) |
+| `zemax_get_global_matrix` | Get a surface's local-to-global rotation matrix and global vertex origin | `surfaceNumber` (**required**) |
 
 ### Analysis Tools
 
@@ -334,6 +338,8 @@ The AI defaults to **standalone** mode unless you explicitly request extension m
 | `zemax_diffraction_encircled_energy` | FFT diffraction encircled energy | `sampling` (opt, default: `3`) · `useDashes` (opt, default: `false`) |
 | `zemax_geometric_encircled_energy` | Geometric encircled energy (ray-based) | `sampling` (opt, default: `4`) · `showDiffractionLimit` (opt, default: `true`) · `scaleByDiffractionLimit` (opt, default: `false`) · `scatterRays` (opt, default: `false`) · `useDashes` (opt, default: `false`) |
 | `zemax_pop` | Physical Optics Propagation returning intensity/phase grid | `startSurface` (opt, default: `1`) · `endSurface` (opt, default: `-1`=image) · `wavelength` (opt, default: `1`) · `field` (opt, default: `1`) · `beamType` (opt, default: `"GaussianWaist"`) · `beamParam1`-`beamParam4` (opt) · `xSampling`/`ySampling` (opt, default: `5`=512) · `xWidth`/`yWidth` (opt) · `autoCalculate` (opt, default: `true`) · `dataType` (opt, default: `"Irradiance"`): `Irradiance`, `PhaseRadians`, `RealPart`, `ImagPart`, `Ex`, `Ey` · `peakNormalize` (opt) · `outputGridPath` (opt): required if Nx*Ny > 65536 · `exportBmpPath` (opt) |
+| `zemax_ray_trace_extended` | Trace a real ray and return intercept, direction, intensity, error and vignette codes | `hx`, `hy`, `px`, `py` (opt, default: `0`) · `wavelength` (opt, default: `1`) · `surface` (opt, default: `0`=image) |
+| `zemax_aperture_throughput` | Sample the normalized pupil to calculate real aperture/obscuration throughput and vignette counts | `hx`, `hy` (opt, default: `0`) · `wavelength` (opt, default: `1`) · `surface` (opt, default: `0`=image) · `gridSize` (opt, default: `41`, range: `5`–`101`) |
 
 ### Optimization Tools
 
